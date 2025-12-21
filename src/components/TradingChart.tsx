@@ -225,14 +225,31 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Pr
     })
   }
 
+  // 获取显示用的symbol
+  const displaySymbol = symbol.replace('USDT', '-USDC')
+  
+  // 获取基础代币用于显示图标
+  const baseToken = symbol.replace('USDT', '')
+  const tokenInfo: Record<string, { icon: string; color: string; leverage: number }> = {
+    BTC: { icon: '₿', color: 'from-orange-400 to-orange-600', leverage: 40 },
+    ETH: { icon: 'Ξ', color: 'from-blue-400 to-purple-500', leverage: 30 },
+    SOL: { icon: '◎', color: 'from-purple-400 to-pink-500', leverage: 20 },
+    MOVE: { icon: 'M', color: 'from-cyan-400 to-teal-500', leverage: 10 },
+    ARB: { icon: 'A', color: 'from-blue-500 to-blue-700', leverage: 15 },
+  }
+  const currentToken = tokenInfo[baseToken] || { icon: baseToken.charAt(0), color: 'from-gray-400 to-gray-600', leverage: 20 }
+
   return (
     <div className="flex flex-col h-full bg-dex-bg">
       {/* 价格信息栏 */}
       <div className="flex items-center gap-6 px-4 py-2 border-b border-dex-border text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-dex-yellow font-bold">{symbol.replace('USDT', '-USDC')}</span>
+          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentToken.color} flex items-center justify-center text-white font-bold text-xs`}>
+            {currentToken.icon}
+          </div>
+          <span className="text-dex-yellow font-bold">{displaySymbol}</span>
           <span className="bg-dex-cyan/20 text-dex-cyan px-2 py-0.5 rounded text-xs font-medium">
-            40x
+            {currentToken.leverage}x
           </span>
         </div>
         

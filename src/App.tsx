@@ -8,14 +8,16 @@ import PositionsPanel from './components/PositionsPanel'
 
 function App() {
   const [symbol, setSymbol] = useState('BTCUSDT')
+  const [displaySymbol, setDisplaySymbol] = useState('BTC-USDC')
   const [interval] = useState('1h')
 
-  const handleMarketChange = (newSymbol: string) => {
-    setSymbol(newSymbol + 'USDT')
+  const handleMarketChange = (binanceSymbol: string, display: string) => {
+    setSymbol(binanceSymbol)
+    setDisplaySymbol(display)
   }
 
   // 从 symbol 提取基础代币
-  const baseToken = symbol.replace('USDT', '').replace('USDC', '')
+  const baseToken = displaySymbol.split('-')[0]
 
   return (
     <div className="flex flex-col h-screen bg-dex-bg">
