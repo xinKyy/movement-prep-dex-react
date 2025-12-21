@@ -16,9 +16,7 @@ export default function Header() {
       {/* Logo */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-dex-cyan to-dex-green flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
-          </div>
+          <img src="/images/logo.jpg" alt="MetaSpot" className="h-8 w-auto" />
           <span className="font-bold text-lg text-dex-text">MetaSpot</span>
         </div>
 
