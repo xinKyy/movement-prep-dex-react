@@ -13,6 +13,8 @@ export default function TradePanel({ symbol = 'BTC' }: Props) {
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market')
   const [side, setSide] = useState<'long' | 'short'>('long')
   const [leverage, setLeverage] = useState(20)
+  const [showLeverageMenu, setShowLeverageMenu] = useState(false)
+  const leverageOptions = [1, 2, 5, 10, 20, 50, 100]
   const [amount, setAmount] = useState('')
   const [reduceOnly, setReduceOnly] = useState(false)
   const [tpsl, setTpsl] = useState(false)
@@ -32,14 +34,38 @@ export default function TradePanel({ symbol = 'BTC' }: Props) {
           <button className="px-3 py-1.5 bg-dex-card border border-dex-border rounded text-sm text-dex-text">
             全仓
           </button>
-          <button className="relative group">
-            <span className="px-3 py-1.5 bg-dex-card border border-dex-border rounded text-sm text-dex-text flex items-center gap-1">
+          <div className="relative">
+            <button 
+              onClick={() => setShowLeverageMenu(!showLeverageMenu)}
+              className="px-3 py-1.5 bg-dex-card border border-dex-border rounded text-sm text-dex-text flex items-center gap-1"
+            >
               {leverage}x
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-            </span>
-          </button>
+            </button>
+            {showLeverageMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowLeverageMenu(false)} />
+                <div className="absolute top-full left-0 mt-1 bg-dex-card border border-dex-border rounded-lg shadow-xl z-50 overflow-hidden">
+                  {leverageOptions.map((lev) => (
+                    <button
+                      key={lev}
+                      onClick={() => {
+                        setLeverage(lev)
+                        setShowLeverageMenu(false)
+                      }}
+                      className={`w-full px-4 py-2 text-sm text-left hover:bg-dex-border transition-colors ${
+                        leverage === lev ? 'text-dex-cyan bg-dex-border' : 'text-dex-text'
+                      }`}
+                    >
+                      {lev}x
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <select className="px-3 py-1.5 bg-dex-card border border-dex-border rounded text-sm text-dex-text">
           <option>USDC</option>
