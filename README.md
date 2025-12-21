@@ -1,4 +1,6 @@
-# Movement Perp DEX
+# MetaSpot
+
+**Where real-time markets meet innovation.**
 
 基于 Movement 网络的永续合约交易所界面。
 

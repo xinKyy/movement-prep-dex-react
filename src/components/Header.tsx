@@ -19,7 +19,7 @@ export default function Header() {
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-dex-cyan to-dex-green flex items-center justify-center">
             <span className="text-white font-bold text-sm">M</span>
           </div>
-          <span className="font-bold text-lg text-dex-text">Movement</span>
+          <span className="font-bold text-lg text-dex-text">MetaSpot</span>
         </div>
 
         {/* 导航链接 */}
@@ -49,8 +49,8 @@ export default function Header() {
       <div className="flex items-center gap-4">
         {/* 公告 */}
         <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-dex-card rounded text-sm">
-          <span className="text-dex-yellow">欢迎来到Movement!</span>
-          <span className="text-dex-text-secondary">存入Arbitrum USDC以开始。</span>
+          <span className="text-dex-yellow">Welcome to MetaSpot!</span>
+          <span className="text-dex-text-secondary">Where real-time markets meet innovation.</span>
         </div>
 
         {/* 功能按钮 */}
