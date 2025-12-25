@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import WalletModal from './WalletModal'
 
 export default function Header() {
-  const { address, isConnected } = useAccount()
-  const { disconnect } = useDisconnect()
+  const { account, connected, disconnect } = useWallet()
   const [showWalletModal, setShowWalletModal] = useState(false)
 
   const formatAddress = (addr: string) => {
@@ -51,6 +50,12 @@ export default function Header() {
           <span className="text-dex-text-secondary">Where real-time markets meet innovation.</span>
         </div>
 
+        {/* 网络标识 */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-dex-card border border-dex-border rounded text-xs">
+          <span className="w-2 h-2 rounded-full bg-dex-cyan animate-pulse" />
+          <span className="text-dex-text-secondary">Movement Testnet</span>
+        </div>
+
         {/* 功能按钮 */}
         <div className="flex items-center gap-2">
           <button className="p-2 hover:bg-dex-card rounded transition-colors">
@@ -67,7 +72,7 @@ export default function Header() {
         </div>
 
         {/* 钱包连接 */}
-        {isConnected ? (
+        {connected && account ? (
           <div className="flex items-center gap-2">
             <button
               onClick={() => disconnect()}
@@ -75,7 +80,7 @@ export default function Header() {
             >
               <div className="w-2 h-2 rounded-full bg-dex-green animate-pulse" />
               <span className="text-sm font-mono text-dex-text">
-                {formatAddress(address!)}
+                {formatAddress(account.address)}
               </span>
               <svg className="w-4 h-4 text-dex-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -100,4 +105,3 @@ export default function Header() {
     </header>
   )
 }
-

@@ -1,0 +1,94 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiService, Market, Position, Price } from '../services/api';
+
+// 获取所有市场
+export function useMarkets() {
+  return useQuery({
+    queryKey: ['markets'],
+    queryFn: () => apiService.getMarkets(),
+    refetchInterval: 30000, // 30秒刷新
+    staleTime: 10000,
+  });
+}
+
+// 获取市场详情
+export function useMarket(id: number) {
+  return useQuery({
+    queryKey: ['market', id],
+    queryFn: () => apiService.getMarket(id),
+    enabled: id >= 0,
+    refetchInterval: 10000,
+  });
+}
+
+// 获取价格
+export function usePrices(marketId?: number, limit = 10) {
+  return useQuery({
+    queryKey: ['prices', marketId, limit],
+    queryFn: () => apiService.getPrices(marketId, limit),
+    refetchInterval: 3000, // 3秒刷新
+    staleTime: 1000,
+  });
+}
+
+// 获取用户持仓
+export function usePositions(userAddr: string | undefined, status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED') {
+  return useQuery({
+    queryKey: ['positions', userAddr, status],
+    queryFn: () => apiService.getPositions({ user: userAddr, status }),
+    enabled: !!userAddr,
+    refetchInterval: 5000, // 5秒刷新
+    staleTime: 2000,
+  });
+}
+
+// 获取持仓详情
+export function usePosition(id: string | undefined) {
+  return useQuery({
+    queryKey: ['position', id],
+    queryFn: () => apiService.getPosition(id!),
+    enabled: !!id,
+    refetchInterval: 3000,
+  });
+}
+
+// 开仓 mutation
+export function useOpenPosition() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (params: {
+      userAddr: string;
+      marketId: number;
+      side: 'LONG' | 'SHORT';
+      margin: number;
+      leverage: number;
+      acceptablePrice?: number;
+    }) => apiService.createOpenOrder(params),
+    onSuccess: () => {
+      // 刷新持仓列表
+      queryClient.invalidateQueries({ queryKey: ['positions'] });
+    },
+  });
+}
+
+// 平仓 mutation
+export function useClosePosition() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (params: {
+      positionId: string;
+      userAddr: string;
+      minExitPrice?: number;
+    }) => apiService.createCloseOrder(params),
+    onSuccess: () => {
+      // 刷新持仓列表
+      queryClient.invalidateQueries({ queryKey: ['positions'] });
+    },
+  });
+}
+
+// 格式化工具
+export { apiService };
+

@@ -1,4 +1,4 @@
-import { useConnect } from 'wagmi'
+import { useWallet } from '@aptos-labs/wallet-adapter-react';
 
 interface Props {
   isOpen: boolean
@@ -7,50 +7,32 @@ interface Props {
 
 // 钱包描述
 const walletDescriptions: Record<string, string> = {
-  MetaMask: '流行的浏览器扩展钱包',
-  'Coinbase Wallet': 'Coinbase 官方钱包',
-  WalletConnect: '连接多种移动端钱包',
-  Injected: '使用浏览器注入的钱包',
-}
-
-// 备用图标颜色（当没有icon时使用）
-const walletColors: Record<string, string> = {
-  MetaMask: 'from-orange-500 to-orange-600',
-  'Coinbase Wallet': 'from-blue-500 to-blue-600',
-  WalletConnect: 'from-blue-400 to-purple-500',
-  Injected: 'from-gray-500 to-gray-600',
+  Petra: 'Aptos 官方推荐钱包',
+  Pontem: '支持多链的安全钱包',
+  Martian: '功能丰富的 Move 钱包',
+  Rise: '简洁易用的移动钱包',
+  Fewcha: '支持 NFT 的钱包',
+  'Nightly': '多链钱包适配器',
+  'T wallet': 'Trust Wallet',
 }
 
 export default function WalletModal({ isOpen, onClose }: Props) {
-  const { connectors, connect, isPending } = useConnect()
+  const { wallets, connect, connecting } = useWallet();
 
   if (!isOpen) return null
 
-  const handleConnect = (connector: typeof connectors[number]) => {
-    connect({ connector })
-    onClose()
+  const handleConnect = async (walletName: string) => {
+    try {
+      connect(walletName);
+      onClose();
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    }
   }
 
-  // 获取钱包图标
-  const getWalletIcon = (connector: typeof connectors[number]) => {
-    // connector.icon 是钱包提供的图标 URL
-    if (connector.icon) {
-      return (
-        <img 
-          src={connector.icon} 
-          alt={connector.name}
-          className="w-8 h-8 object-contain"
-        />
-      )
-    }
-    
-    // 备用：显示首字母
-    return (
-      <span className="text-white font-bold text-lg">
-        {connector.name.charAt(0)}
-      </span>
-    )
-  }
+  // 获取可用的钱包
+  const availableWallets = wallets?.filter(wallet => wallet.readyState === 'Installed') || [];
+  const otherWallets = wallets?.filter(wallet => wallet.readyState !== 'Installed') || [];
 
   return (
     <>
@@ -65,7 +47,10 @@ export default function WalletModal({ isOpen, onClose }: Props) {
         <div className="bg-dex-card border border-dex-border rounded-2xl shadow-2xl overflow-hidden">
           {/* 头部 */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-dex-border">
-            <h2 className="text-lg font-bold text-dex-text">连接钱包</h2>
+            <div>
+              <h2 className="text-lg font-bold text-dex-text">连接钱包</h2>
+              <p className="text-xs text-dex-text-secondary mt-1">Movement Testnet</p>
+            </div>
             <button
               onClick={onClose}
               className="p-2 hover:bg-dex-border rounded-lg transition-colors"
@@ -77,54 +62,112 @@ export default function WalletModal({ isOpen, onClose }: Props) {
           </div>
 
           {/* 钱包列表 */}
-          <div className="p-4 space-y-3">
-            <p className="text-sm text-dex-text-secondary mb-4">
-              选择你想要连接的钱包。如果你还没有钱包，可以选择一个提供商来创建。
-            </p>
-            
-            {connectors.map((connector) => {
-              const colorClass = walletColors[connector.name] || 'from-gray-600 to-gray-700'
-              const description = walletDescriptions[connector.name] || '点击连接'
-              const hasIcon = !!connector.icon
-              
-              return (
-                <button
-                  key={connector.uid}
-                  onClick={() => handleConnect(connector)}
-                  disabled={isPending}
-                  className="w-full flex items-center gap-4 p-4 bg-dex-bg hover:bg-dex-border border border-dex-border hover:border-dex-cyan rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {/* 钱包图标 */}
-                  <div 
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden ${
-                      hasIcon ? 'bg-white p-2' : `bg-gradient-to-br ${colorClass}`
-                    }`}
+          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+            {/* 已安装的钱包 */}
+            {availableWallets.length > 0 && (
+              <>
+                <p className="text-xs text-dex-text-secondary mb-2">已安装</p>
+                {availableWallets.map((wallet) => (
+                  <button
+                    key={wallet.name}
+                    onClick={() => handleConnect(wallet.name)}
+                    disabled={connecting}
+                    className="w-full flex items-center gap-4 p-4 bg-dex-bg hover:bg-dex-border border border-dex-border hover:border-dex-cyan rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {getWalletIcon(connector)}
-                  </div>
-                  
-                  {/* 钱包信息 */}
-                  <div className="flex-1 text-left">
-                    <span className="text-dex-text font-medium block">
-                      {connector.name}
-                    </span>
-                    <span className="text-xs text-dex-text-secondary">
-                      {description}
-                    </span>
-                  </div>
-                  
-                  {/* 箭头 */}
-                  <svg 
-                    className="w-5 h-5 text-dex-text-secondary group-hover:text-dex-cyan group-hover:translate-x-1 transition-all" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
+                    {/* 钱包图标 */}
+                    <div className="w-12 h-12 rounded-xl bg-white p-2 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden">
+                      {wallet.icon ? (
+                        <img 
+                          src={wallet.icon} 
+                          alt={wallet.name}
+                          className="w-8 h-8 object-contain"
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-600">
+                          {wallet.name.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* 钱包信息 */}
+                    <div className="flex-1 text-left">
+                      <span className="text-dex-text font-medium block">
+                        {wallet.name}
+                      </span>
+                      <span className="text-xs text-dex-text-secondary">
+                        {walletDescriptions[wallet.name] || '点击连接'}
+                      </span>
+                    </div>
+                    
+                    {/* 状态指示 */}
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-dex-green animate-pulse" />
+                      <svg 
+                        className="w-5 h-5 text-dex-text-secondary group-hover:text-dex-cyan group-hover:translate-x-1 transition-all" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+
+            {/* 其他可用钱包 */}
+            {otherWallets.length > 0 && (
+              <>
+                <p className="text-xs text-dex-text-secondary mb-2 mt-4">
+                  {availableWallets.length > 0 ? '更多钱包' : '请安装以下钱包'}
+                </p>
+                {otherWallets.slice(0, 5).map((wallet) => (
+                  <a
+                    key={wallet.name}
+                    href={wallet.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center gap-4 p-4 bg-dex-bg hover:bg-dex-border border border-dex-border rounded-xl transition-all group opacity-60 hover:opacity-100"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )
-            })}
+                    {/* 钱包图标 */}
+                    <div className="w-12 h-12 rounded-xl bg-gray-700 p-2 flex items-center justify-center shadow-lg overflow-hidden">
+                      {wallet.icon ? (
+                        <img 
+                          src={wallet.icon} 
+                          alt={wallet.name}
+                          className="w-8 h-8 object-contain"
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-400">
+                          {wallet.name.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* 钱包信息 */}
+                    <div className="flex-1 text-left">
+                      <span className="text-dex-text font-medium block">
+                        {wallet.name}
+                      </span>
+                      <span className="text-xs text-dex-cyan">
+                        点击安装 →
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </>
+            )}
+
+            {/* 无钱包提示 */}
+            {wallets?.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-dex-text-secondary">未检测到钱包</p>
+                <p className="text-xs text-dex-text-secondary mt-2">
+                  请安装 Petra、Pontem 或 Martian 钱包
+                </p>
+              </div>
+            )}
           </div>
 
           {/* 底部提示 */}

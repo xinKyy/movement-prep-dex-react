@@ -6,6 +6,15 @@ import TradePanel from './components/TradePanel'
 import MarketSelector from './components/MarketSelector'
 import PositionsPanel from './components/PositionsPanel'
 
+// 市场符号到 ID 的映射
+const SYMBOL_TO_MARKET_ID: Record<string, number> = {
+  'BTC-USDC': 0,
+  'ETH-USDC': 1,
+  'SOL-USDC': 2,
+  'MOVE-USDC': 3,
+  'ARB-USDC': 4,
+}
+
 function App() {
   const [symbol, setSymbol] = useState('BTCUSDT')
   const [displaySymbol, setDisplaySymbol] = useState('BTC-USDC')
@@ -16,8 +25,9 @@ function App() {
     setDisplaySymbol(display)
   }
 
-  // 从 symbol 提取基础代币
+  // 从 symbol 提取基础代币和市场 ID
   const baseToken = displaySymbol.split('-')[0]
+  const marketId = SYMBOL_TO_MARKET_ID[displaySymbol] ?? 0
 
   return (
     <div className="flex flex-col h-screen bg-dex-bg">
@@ -100,7 +110,7 @@ function App() {
 
           {/* 交易面板 */}
           <div className="flex-1">
-            <TradePanel symbol={baseToken} />
+            <TradePanel symbol={baseToken} marketId={marketId} />
           </div>
         </div>
       </div>
