@@ -13,9 +13,10 @@ interface KlineData {
 interface Props {
   symbol?: string
   interval?: string
+  marketId?: number
 }
 
-export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Props) {
+export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', marketId = 0 }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)

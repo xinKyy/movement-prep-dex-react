@@ -1,173 +1,95 @@
 import { useState, useEffect } from 'react'
-
-interface Market {
-  symbol: string        // 显示用的符号 如 BTC-USDC
-  binanceSymbol: string // 币安API用的符号 如 BTCUSDT
-  name: string
-  price: number
-  change24h: number
-  volume24h: number
-  leverage: number
-  icon: string          // 代币图标
-  color: string         // 图标背景色
-}
-
-const defaultMarkets: Market[] = [
-  { 
-    symbol: 'BTC-USDC', 
-    binanceSymbol: 'BTCUSDT',
-    name: 'Bitcoin', 
-    price: 0, 
-    change24h: 0, 
-    volume24h: 0, 
-    leverage: 40,
-    icon: '₿',
-    color: 'from-orange-400 to-orange-600'
-  },
-  { 
-    symbol: 'ETH-USDC', 
-    binanceSymbol: 'ETHUSDT',
-    name: 'Ethereum', 
-    price: 0, 
-    change24h: 0, 
-    volume24h: 0, 
-    leverage: 30,
-    icon: 'Ξ',
-    color: 'from-blue-400 to-purple-500'
-  },
-  { 
-    symbol: 'SOL-USDC', 
-    binanceSymbol: 'SOLUSDT',
-    name: 'Solana', 
-    price: 0, 
-    change24h: 0, 
-    volume24h: 0, 
-    leverage: 20,
-    icon: '◎',
-    color: 'from-purple-400 to-pink-500'
-  },
-  { 
-    symbol: 'MOVE-USDC', 
-    binanceSymbol: 'MOVEUSDT', // 币安有MOVE交易对
-    name: 'Movement', 
-    price: 0, 
-    change24h: 0, 
-    volume24h: 0, 
-    leverage: 10,
-    icon: 'M',
-    color: 'from-cyan-400 to-teal-500'
-  },
-  { 
-    symbol: 'ARB-USDC', 
-    binanceSymbol: 'ARBUSDT',
-    name: 'Arbitrum', 
-    price: 0, 
-    change24h: 0, 
-    volume24h: 0, 
-    leverage: 15,
-    icon: 'A',
-    color: 'from-blue-500 to-blue-700'
-  },
-]
+import { useMarkets, usePrices } from '../hooks/useApi'
+import { fromFixed, MARKET_INFO } from '../config/constants'
 
 interface Props {
-  onSelect?: (binanceSymbol: string, displaySymbol: string) => void
+  onSelect?: (binanceSymbol: string, displaySymbol: string, marketId: number) => void
 }
 
 export default function MarketSelector({ onSelect }: Props) {
   const [isOpen, setIsOpen] = useState(false)
-  const [markets, setMarkets] = useState<Market[]>(defaultMarkets)
-  const [selectedMarket, setSelectedMarket] = useState(defaultMarkets[0])
+  const [selectedMarketId, setSelectedMarketId] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // 从后端获取市场数据
+  const { data: markets, isLoading: marketsLoading } = useMarkets()
+  const { data: prices } = usePrices(undefined, 20)
 
-  // 获取所有市场的实时价格
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const symbols = defaultMarkets.map(m => m.binanceSymbol)
-        const response = await fetch(
-          `https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`
-        )
-        const data = await response.json()
-        
-        const updatedMarkets = defaultMarkets.map(market => {
-          const ticker = data.find((t: { symbol: string }) => t.symbol === market.binanceSymbol)
-          if (ticker) {
-            return {
-              ...market,
-              price: parseFloat(ticker.lastPrice),
-              change24h: parseFloat(ticker.priceChangePercent),
-              volume24h: parseFloat(ticker.quoteVolume),
-            }
-          }
-          return market
-        })
-        
-        setMarkets(updatedMarkets)
-        
-        // 更新选中市场的数据
-        const updatedSelected = updatedMarkets.find(m => m.symbol === selectedMarket.symbol)
-        if (updatedSelected) {
-          setSelectedMarket(updatedSelected)
-        }
-      } catch (error) {
-        console.error('Failed to fetch prices:', error)
-      }
-    }
+  // 获取当前选中的市场
+  const selectedMarket = markets?.find(m => m.id === selectedMarketId)
+  const selectedMarketInfo = MARKET_INFO[selectedMarketId]
 
-    fetchPrices()
-    const interval = setInterval(fetchPrices, 5000) // 每5秒更新一次
-    
-    return () => clearInterval(interval)
-  }, [selectedMarket.symbol])
-
-  const handleSelect = (market: Market) => {
-    setSelectedMarket(market)
-    setIsOpen(false)
-    onSelect?.(market.binanceSymbol, market.symbol)
+  // 获取市场价格
+  const getMarketPrice = (marketId: number) => {
+    const priceData = prices?.find(p => p.marketId === marketId)
+    return priceData ? fromFixed(priceData.price) : 0
   }
 
-  const formatNumber = (num: number) => {
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
-    return `$${num.toLocaleString()}`
+  // 初始选择
+  useEffect(() => {
+    if (markets && markets.length > 0 && !selectedMarket) {
+      const firstMarket = markets[0]
+      setSelectedMarketId(firstMarket.id)
+      const binanceSymbol = `${firstMarket.baseAsset}USDT`
+      onSelect?.(binanceSymbol, `${firstMarket.baseAsset}-USDC`, firstMarket.id)
+    }
+  }, [markets, selectedMarket, onSelect])
+
+  const handleSelect = (market: typeof markets extends (infer T)[] ? T : never) => {
+    setSelectedMarketId(market.id)
+    setIsOpen(false)
+    const binanceSymbol = `${market.baseAsset}USDT`
+    const displaySymbol = `${market.baseAsset}-USDC`
+    onSelect?.(binanceSymbol, displaySymbol, market.id)
   }
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     if (price >= 1) return price.toFixed(2)
-    return price.toFixed(4)
+    if (price >= 0.01) return price.toFixed(4)
+    return price.toFixed(6)
   }
 
-  const filteredMarkets = markets.filter(market => 
+  const formatVolume = (volume: number) => {
+    if (volume >= 1e9) return `$${(volume / 1e9).toFixed(2)}B`
+    if (volume >= 1e6) return `$${(volume / 1e6).toFixed(2)}M`
+    if (volume >= 1e3) return `$${(volume / 1e3).toFixed(2)}K`
+    return `$${volume.toFixed(2)}`
+  }
+
+  const filteredMarkets = markets?.filter(market => 
     market.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    market.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+    market.baseAsset.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
+
+  const currentPrice = getMarketPrice(selectedMarketId)
+  const maxLeverage = selectedMarket ? fromFixed(selectedMarket.maxLeverage) : 100
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-3 px-4 py-2 bg-dex-card hover:bg-dex-border rounded-lg transition-colors"
+        disabled={marketsLoading}
       >
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${selectedMarket.color} flex items-center justify-center text-white font-bold text-sm`}>
-            {selectedMarket.icon}
-          </div>
-          <span className="font-bold text-dex-text">{selectedMarket.symbol}</span>
+          {selectedMarketInfo && (
+            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${selectedMarketInfo.color} flex items-center justify-center text-white font-bold text-sm`}>
+              {selectedMarketInfo.icon}
+            </div>
+          )}
+          <span className="font-bold text-dex-text">
+            {selectedMarket ? `${selectedMarket.baseAsset}-USDC` : 'BTC-USDC'}
+          </span>
           <span className="px-2 py-0.5 bg-dex-cyan/20 text-dex-cyan text-xs font-medium rounded">
-            {selectedMarket.leverage}x
+            {maxLeverage}x
           </span>
         </div>
         
-        {/* 显示实时价格和涨跌幅 */}
-        {selectedMarket.price > 0 && (
+        {/* 显示实时价格 */}
+        {currentPrice > 0 && (
           <div className="flex items-center gap-3 ml-2">
-            <span className="font-mono text-dex-text">${formatPrice(selectedMarket.price)}</span>
-            <span className={`font-mono text-sm ${selectedMarket.change24h >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
-              {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h.toFixed(2)}%
-            </span>
+            <span className="font-mono text-dex-text">${formatPrice(currentPrice)}</span>
           </div>
         )}
         
@@ -205,40 +127,63 @@ export default function MarketSelector({ onSelect }: Props) {
             <div className="grid grid-cols-4 gap-2 px-4 py-2 text-xs text-dex-text-secondary border-b border-dex-border">
               <span>市场</span>
               <span className="text-right">价格</span>
-              <span className="text-right">24h变化</span>
-              <span className="text-right">24h成交量</span>
+              <span className="text-right">最大杠杆</span>
+              <span className="text-right">手续费</span>
             </div>
 
             {/* 市场列表 */}
             <div className="max-h-80 overflow-y-auto">
-              {filteredMarkets.map((market) => (
-                <button
-                  key={market.symbol}
-                  onClick={() => handleSelect(market)}
-                  className={`w-full grid grid-cols-4 gap-2 px-4 py-3 hover:bg-dex-border transition-colors ${
-                    selectedMarket.symbol === market.symbol ? 'bg-dex-border' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${market.color} flex items-center justify-center text-white font-bold text-xs`}>
-                      {market.icon}
-                    </div>
-                    <div className="text-left">
-                      <span className="text-sm text-dex-text font-medium block">{market.symbol}</span>
-                      <span className="text-xs text-dex-text-secondary">{market.name}</span>
-                    </div>
-                  </div>
-                  <span className="text-right text-sm font-mono text-dex-text self-center">
-                    ${formatPrice(market.price)}
-                  </span>
-                  <span className={`text-right text-sm font-mono self-center ${market.change24h >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
-                    {market.change24h >= 0 ? '+' : ''}{market.change24h.toFixed(2)}%
-                  </span>
-                  <span className="text-right text-sm font-mono text-dex-text-secondary self-center">
-                    {formatNumber(market.volume24h)}
-                  </span>
-                </button>
-              ))}
+              {marketsLoading ? (
+                <div className="flex items-center justify-center py-8 text-dex-text-secondary">
+                  加载中...
+                </div>
+              ) : filteredMarkets.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-dex-text-secondary">
+                  暂无市场
+                </div>
+              ) : (
+                filteredMarkets.map((market) => {
+                  const marketInfo = MARKET_INFO[market.id]
+                  const price = getMarketPrice(market.id)
+                  const leverage = fromFixed(market.maxLeverage)
+                  const feeRate = fromFixed(market.feeRate) * 100
+
+                  return (
+                    <button
+                      key={market.id}
+                      onClick={() => handleSelect(market)}
+                      className={`w-full grid grid-cols-4 gap-2 px-4 py-3 hover:bg-dex-border transition-colors ${
+                        selectedMarketId === market.id ? 'bg-dex-border' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {marketInfo && (
+                          <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${marketInfo.color} flex items-center justify-center text-white font-bold text-xs`}>
+                            {marketInfo.icon}
+                          </div>
+                        )}
+                        <div className="text-left">
+                          <span className="text-sm text-dex-text font-medium block">
+                            {market.baseAsset}-USDC
+                          </span>
+                          <span className="text-xs text-dex-text-secondary">
+                            {market.symbol}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-right text-sm font-mono text-dex-text self-center">
+                        ${formatPrice(price)}
+                      </span>
+                      <span className="text-right text-sm font-mono text-dex-cyan self-center">
+                        {leverage}x
+                      </span>
+                      <span className="text-right text-sm font-mono text-dex-text-secondary self-center">
+                        {feeRate.toFixed(2)}%
+                      </span>
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
         </>

@@ -6,28 +6,20 @@ import TradePanel from './components/TradePanel'
 import MarketSelector from './components/MarketSelector'
 import PositionsPanel from './components/PositionsPanel'
 
-// 市场符号到 ID 的映射
-const SYMBOL_TO_MARKET_ID: Record<string, number> = {
-  'BTC-USDC': 0,
-  'ETH-USDC': 1,
-  'SOL-USDC': 2,
-  'MOVE-USDC': 3,
-  'ARB-USDC': 4,
-}
-
 function App() {
   const [symbol, setSymbol] = useState('BTCUSDT')
   const [displaySymbol, setDisplaySymbol] = useState('BTC-USDC')
+  const [marketId, setMarketId] = useState(0)
   const [interval] = useState('1h')
 
-  const handleMarketChange = (binanceSymbol: string, display: string) => {
+  const handleMarketChange = (binanceSymbol: string, display: string, id: number) => {
     setSymbol(binanceSymbol)
     setDisplaySymbol(display)
+    setMarketId(id)
   }
 
-  // 从 symbol 提取基础代币和市场 ID
+  // 从 symbol 提取基础代币
   const baseToken = displaySymbol.split('-')[0]
-  const marketId = SYMBOL_TO_MARKET_ID[displaySymbol] ?? 0
 
   return (
     <div className="flex flex-col h-screen bg-dex-bg">
@@ -94,7 +86,7 @@ function App() {
 
           {/* K线图 */}
           <div className="flex-1 relative min-h-0">
-            <TradingChart symbol={symbol} interval={interval} />
+            <TradingChart symbol={symbol} interval={interval} marketId={marketId} />
           </div>
 
           {/* 持仓面板 */}
