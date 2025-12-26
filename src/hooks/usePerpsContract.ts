@@ -1,9 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
-import { CONTRACT_CONFIG, PRECISION } from '../config/constants';
 import { apiService } from '../services/api';
-
-const { moduleAddress } = CONTRACT_CONFIG;
 
 export function usePerpsContract() {
   const { signAndSubmitTransaction, account, connected } = useWallet();
@@ -34,21 +31,20 @@ export function usePerpsContract() {
         leverage,
       });
 
-      // 2. 签名并提交交易
+      console.log('Order data from backend:', orderData);
+
+      // 2. 使用后端返回的 txPayload 签名并提交交易
+      const { txPayload } = orderData;
+      
       const response = await signAndSubmitTransaction({
         data: {
-          function: `${moduleAddress}::perps::open_position_entry` as `${string}::${string}::${string}`,
+          function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: [
-            marketId,
-            isLong,
-            Math.floor(margin * PRECISION),
-            Math.floor(leverage * PRECISION),
-            moduleAddress,
-          ],
+          functionArguments: txPayload.functionArguments,
         },
       });
 
+      console.log('Transaction submitted:', response);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : '开仓失败';
@@ -73,25 +69,26 @@ export function usePerpsContract() {
     setError(null);
 
     try {
-      // 1. 从后端获取交易 payload（可选，用于获取预估 PnL）
+      // 1. 从后端获取交易 payload
       const orderData = await apiService.createCloseOrder({
         positionId,
         userAddr: account.address,
       });
 
-      // 2. 签名并提交交易
+      console.log('Close order data from backend:', orderData);
+
+      // 2. 使用后端返回的 txPayload 签名并提交交易
+      const { txPayload } = orderData;
+
       const response = await signAndSubmitTransaction({
         data: {
-          function: `${moduleAddress}::perps::close_position_by_trader_entry` as `${string}::${string}::${string}`,
+          function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: [
-            marketId,
-            parseInt(chainPositionId),
-            moduleAddress,
-          ],
+          functionArguments: txPayload.functionArguments,
         },
       });
 
+      console.log('Transaction submitted:', response);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : '平仓失败';
@@ -102,11 +99,10 @@ export function usePerpsContract() {
     }
   }, [account, signAndSubmitTransaction]);
 
-  // 带滑点保护的平仓
+  // 带滑点保护的平仓（直接调用合约）
   const closePositionWithSlippage = useCallback(async (
-    marketId: number,
-    chainPositionId: string,
-    minExitPrice: number
+    positionId: string,
+    minExitPrice?: number
   ) => {
     if (!account?.address) {
       throw new Error('请先连接钱包');
@@ -116,19 +112,26 @@ export function usePerpsContract() {
     setError(null);
 
     try {
+      // 从后端获取交易 payload（带滑点保护价格）
+      const orderData = await apiService.createCloseOrder({
+        positionId,
+        userAddr: account.address,
+        minExitPrice,
+      });
+
+      console.log('Close order data from backend:', orderData);
+
+      const { txPayload } = orderData;
+
       const response = await signAndSubmitTransaction({
         data: {
-          function: `${moduleAddress}::perps::close_position_by_trader_with_slippage_entry` as `${string}::${string}::${string}`,
+          function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: [
-            marketId,
-            parseInt(chainPositionId),
-            moduleAddress,
-            Math.floor(minExitPrice * PRECISION),
-          ],
+          functionArguments: txPayload.functionArguments,
         },
       });
 
+      console.log('Transaction submitted:', response);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : '平仓失败';
@@ -149,4 +152,3 @@ export function usePerpsContract() {
     address: account?.address,
   };
 }
-
