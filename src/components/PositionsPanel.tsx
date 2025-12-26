@@ -8,7 +8,7 @@ type Tab = 'positions' | 'orders' | 'history'
 
 export default function PositionsPanel() {
   const { account, connected } = useWallet()
-  const { data: positionsData, isLoading, refetch } = usePositions(account?.address, 'OPEN')
+  const { data: positionsData, isLoading, refetch } = usePositions(account?.address.toStringLong(), 'OPEN')
   const { closePosition, loading: closingPosition } = usePerpsContract()
   const [activeTab, setActiveTab] = useState<Tab>('positions')
   const [closingId, setClosingId] = useState<string | null>(null)

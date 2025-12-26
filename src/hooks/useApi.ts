@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService, Market, Position, Price } from '../services/api';
+import { apiService} from '../services/api';
 
 // 获取所有市场
 export function useMarkets() {
@@ -32,7 +32,7 @@ export function usePrices(marketId?: number, limit = 10) {
 }
 
 // 获取用户持仓
-export function usePositions(userAddr: string | undefined, status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED') {
+export function usePositions(userAddr?: string | undefined, status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED') {
   return useQuery({
     queryKey: ['positions', userAddr, status],
     queryFn: () => apiService.getPositions({ user: userAddr, status }),
@@ -55,7 +55,7 @@ export function usePosition(id: string | undefined) {
 // 开仓 mutation
 export function useOpenPosition() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (params: {
       userAddr: string;
@@ -75,7 +75,7 @@ export function useOpenPosition() {
 // 平仓 mutation
 export function useClosePosition() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (params: {
       positionId: string;
