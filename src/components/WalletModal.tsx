@@ -7,13 +7,12 @@ interface Props {
 
 // 钱包描述
 const walletDescriptions: Record<string, string> = {
-  Petra: 'Aptos 官方推荐钱包',
-  Pontem: '支持多链的安全钱包',
+  'Nightly': '⭐ Movement 官方推荐',
+  'Razor Wallet': '⭐ Movement 官方推荐',
+  'OKX Wallet': '⭐ Movement 官方推荐',
+  Petra: 'Aptos 官方钱包',
+  'Pontem Wallet': '支持多链的安全钱包',
   Martian: '功能丰富的 Move 钱包',
-  Rise: '简洁易用的移动钱包',
-  Fewcha: '支持 NFT 的钱包',
-  'Nightly': '多链钱包适配器',
-  'T wallet': 'Trust Wallet',
 }
 
 export default function WalletModal({ isOpen, onClose }: Props) {

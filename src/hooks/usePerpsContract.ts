@@ -7,6 +7,14 @@ export function usePerpsContract() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 获取地址字符串
+  const getAddressString = () => {
+    if (!account?.address) return null;
+    return typeof account.address === 'string' 
+      ? account.address 
+      : account.address.toString();
+  };
+
   // 开仓
   const openPosition = useCallback(async (
     marketId: number,
@@ -14,7 +22,8 @@ export function usePerpsContract() {
     margin: number,
     leverage: number
   ) => {
-    if (!account?.address) {
+    const userAddr = getAddressString();
+    if (!userAddr) {
       throw new Error('请先连接钱包');
     }
 
@@ -24,7 +33,7 @@ export function usePerpsContract() {
     try {
       // 1. 从后端获取交易 payload
       const orderData = await apiService.createOpenOrder({
-        userAddr: account.address,
+        userAddr,
         marketId,
         side: isLong ? 'LONG' : 'SHORT',
         margin,
@@ -58,10 +67,11 @@ export function usePerpsContract() {
   // 平仓
   const closePosition = useCallback(async (
     positionId: string,
-    marketId: number,
-    chainPositionId: string
+    _marketId?: number,      // 保留参数兼容性，但由后端 txPayload 处理
+    _chainPositionId?: string
   ) => {
-    if (!account?.address) {
+    const userAddr = getAddressString();
+    if (!userAddr) {
       throw new Error('请先连接钱包');
     }
 
@@ -72,7 +82,7 @@ export function usePerpsContract() {
       // 1. 从后端获取交易 payload
       const orderData = await apiService.createCloseOrder({
         positionId,
-        userAddr: account.address,
+        userAddr,
       });
 
       console.log('Close order data from backend:', orderData);
@@ -104,7 +114,8 @@ export function usePerpsContract() {
     positionId: string,
     minExitPrice?: number
   ) => {
-    if (!account?.address) {
+    const userAddr = getAddressString();
+    if (!userAddr) {
       throw new Error('请先连接钱包');
     }
 
@@ -115,7 +126,7 @@ export function usePerpsContract() {
       // 从后端获取交易 payload（带滑点保护价格）
       const orderData = await apiService.createCloseOrder({
         positionId,
-        userAddr: account.address,
+        userAddr,
         minExitPrice,
       });
 
@@ -149,6 +160,6 @@ export function usePerpsContract() {
     loading,
     error,
     connected,
-    address: account?.address,
+    address: getAddressString(),
   };
 }

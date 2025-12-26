@@ -4,7 +4,7 @@ export const NETWORK_CONFIG = {
   faucetUrl: "https://faucet.testnet.movementnetwork.xyz",
   indexerUrl: "https://indexer.testnet.movementnetwork.xyz/v1/graphql",
   explorerUrl: "https://explorer.movementnetwork.xyz",
-  chainId: "movement-testnet",
+  chainId: 250, // Movement Testnet Chain ID
   chainName: "Movement Testnet",
 } as const;
 
@@ -42,4 +42,3 @@ export const MARKET_INFO: Record<number, { symbol: string; baseAsset: string; ic
   3: { symbol: 'MOVE/USDT', baseAsset: 'MOVE', icon: 'M', color: 'from-cyan-400 to-teal-500' },
   4: { symbol: 'ARB/USDT', baseAsset: 'ARB', icon: 'A', color: 'from-blue-500 to-blue-700' },
 };
-

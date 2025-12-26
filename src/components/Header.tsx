@@ -6,8 +6,9 @@ export default function Header() {
   const { account, connected, disconnect } = useWallet()
   const [showWalletModal, setShowWalletModal] = useState(false)
 
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  const formatAddress = (addr: string | { toString: () => string }) => {
+    const addrStr = typeof addr === 'string' ? addr : addr.toString()
+    return `${addrStr.slice(0, 6)}...${addrStr.slice(-4)}`
   }
 
   return (
@@ -80,7 +81,7 @@ export default function Header() {
             >
               <div className="w-2 h-2 rounded-full bg-dex-green animate-pulse" />
               <span className="text-sm font-mono text-dex-text">
-                {formatAddress(account.address)}
+                {formatAddress(account.address.toString())}
               </span>
               <svg className="w-4 h-4 text-dex-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

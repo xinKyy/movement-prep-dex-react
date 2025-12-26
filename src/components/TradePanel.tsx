@@ -28,8 +28,9 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const leverageOptions = [1, 2, 5, 10, 20, 50, 100]
   const sliderSteps = [0, 25, 50, 75, 100]
 
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  const formatAddress = (addr: string | { toString: () => string }) => {
+    const addrStr = typeof addr === 'string' ? addr : addr.toString()
+    return `${addrStr.slice(0, 6)}...${addrStr.slice(-4)}`
   }
 
   // 计算预估值
@@ -245,7 +246,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
             </button>
             <div className="text-center">
               <span className="text-xs text-dex-text-secondary">
-                已连接: {formatAddress(account.address)}
+                已连接: {formatAddress(account.address.toString())}
               </span>
             </div>
             {txError && (
