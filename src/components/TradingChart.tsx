@@ -16,13 +16,13 @@ interface Props {
   marketId?: number
 }
 
-export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', marketId = 0 }: Props) {
+export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
-  
+
   const [priceInfo, setPriceInfo] = useState({
     open: 0,
     high: 0,
@@ -39,7 +39,7 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
         `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`
       )
       const data = await response.json()
-      
+
       return data.map((item: (string | number)[]) => ({
         time: (Number(item[0]) / 1000) as Time,
         open: parseFloat(item[1] as string),
@@ -179,8 +179,8 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
         const volumeData: HistogramData = {
           time: (kline.t / 1000) as Time,
           value: parseFloat(kline.v),
-          color: candleData.close >= candleData.open 
-            ? 'rgba(14, 203, 129, 0.5)' 
+          color: candleData.close >= candleData.open
+            ? 'rgba(14, 203, 129, 0.5)'
             : 'rgba(246, 70, 93, 0.5)',
         }
 
@@ -228,7 +228,7 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
 
   // 获取显示用的symbol
   const displaySymbol = symbol.replace('USDT', '-USDC')
-  
+
   // 获取基础代币用于显示图标
   const baseToken = symbol.replace('USDT', '')
   const tokenInfo: Record<string, { icon: string; color: string; leverage: number }> = {
@@ -253,7 +253,7 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
             {currentToken.leverage}x
           </span>
         </div>
-        
+
         <div className="flex items-center gap-4 font-mono">
           <div>
             <span className="text-dex-text-secondary text-xs">标记</span>
@@ -261,12 +261,12 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
               {formatPrice(priceInfo.close)}
             </span>
           </div>
-          
+
           <div>
             <span className="text-dex-text-secondary text-xs">预言机</span>
             <span className="ml-2 text-dex-text">{formatPrice(priceInfo.close * 1.0005)}</span>
           </div>
-          
+
           <div>
             <span className="text-dex-text-secondary text-xs">24h变化</span>
             <span className={`ml-2 ${priceInfo.changePercent >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
@@ -298,7 +298,7 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h', mark
 
       {/* K线图容器 */}
       <div ref={chartContainerRef} className="flex-1 min-h-0" />
-      
+
       {/* TradingView 标识 */}
       <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs text-dex-text-secondary">
         <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center font-bold text-white">

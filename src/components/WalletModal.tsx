@@ -16,7 +16,7 @@ const walletDescriptions: Record<string, string> = {
 }
 
 export default function WalletModal({ isOpen, onClose }: Props) {
-  const { wallets, connect, connecting } = useWallet();
+  const { wallets, connect } = useWallet();
 
   if (!isOpen) return null
 
@@ -36,11 +36,11 @@ export default function WalletModal({ isOpen, onClose }: Props) {
   return (
     <>
       {/* 背景遮罩 */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in"
         onClick={onClose}
       />
-      
+
       {/* 弹窗内容 */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md animate-scale-in">
         <div className="bg-dex-card border border-dex-border rounded-2xl shadow-2xl overflow-hidden">
@@ -70,14 +70,13 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                   <button
                     key={wallet.name}
                     onClick={() => handleConnect(wallet.name)}
-                    disabled={connecting}
                     className="w-full flex items-center gap-4 p-4 bg-dex-bg hover:bg-dex-border border border-dex-border hover:border-dex-cyan rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {/* 钱包图标 */}
                     <div className="w-12 h-12 rounded-xl bg-white p-2 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden">
                       {wallet.icon ? (
-                        <img 
-                          src={wallet.icon} 
+                        <img
+                          src={wallet.icon}
                           alt={wallet.name}
                           className="w-8 h-8 object-contain"
                         />
@@ -87,7 +86,7 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                         </span>
                       )}
                     </div>
-                    
+
                     {/* 钱包信息 */}
                     <div className="flex-1 text-left">
                       <span className="text-dex-text font-medium block">
@@ -97,14 +96,14 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                         {walletDescriptions[wallet.name] || '点击连接'}
                       </span>
                     </div>
-                    
+
                     {/* 状态指示 */}
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-dex-green animate-pulse" />
-                      <svg 
-                        className="w-5 h-5 text-dex-text-secondary group-hover:text-dex-cyan group-hover:translate-x-1 transition-all" 
-                        fill="none" 
-                        stroke="currentColor" 
+                      <svg
+                        className="w-5 h-5 text-dex-text-secondary group-hover:text-dex-cyan group-hover:translate-x-1 transition-all"
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -132,8 +131,8 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                     {/* 钱包图标 */}
                     <div className="w-12 h-12 rounded-xl bg-gray-700 p-2 flex items-center justify-center shadow-lg overflow-hidden">
                       {wallet.icon ? (
-                        <img 
-                          src={wallet.icon} 
+                        <img
+                          src={wallet.icon}
                           alt={wallet.name}
                           className="w-8 h-8 object-contain"
                         />
@@ -143,7 +142,7 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                         </span>
                       )}
                     </div>
-                    
+
                     {/* 钱包信息 */}
                     <div className="flex-1 text-left">
                       <span className="text-dex-text font-medium block">

@@ -4,12 +4,12 @@ import { NETWORK_CONFIG } from './constants';
 
 /**
  * Movement 网络钱包配置
- * 
+ *
  * 推荐钱包（根据 Movement 官方文档）：
  * - OKX Wallet: https://www.okx.com/web3
  * - Razor: https://razorwallet.xyz/
  * - Nightly: https://nightly.app/
- * 
+ *
  * 文档: https://docs.movementnetwork.xyz/general/usingmovement/connect_to_movement
  */
 export function WalletProvider({ children }: PropsWithChildren) {
@@ -18,11 +18,9 @@ export function WalletProvider({ children }: PropsWithChildren) {
       autoConnect={true}
       optInWallets={[
         'Nightly',           // Movement 推荐
-        'Razor Wallet',      // Movement 推荐  
         'OKX Wallet',        // Movement 推荐
         'Petra',             // Aptos 官方
         'Pontem Wallet',
-        'Martian',
       ]}
       onError={(error) => {
         console.error('Wallet error:', error);
@@ -35,7 +33,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
 
 /**
  * Movement 测试网配置信息
- * 
+ *
  * 在钱包中添加自定义网络时使用：
  * - Chain ID: 250
  * - RPC URL: https://testnet.movementnetwork.xyz/v1

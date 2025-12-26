@@ -10,7 +10,7 @@ export default function MarketSelector({ onSelect }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedMarketId, setSelectedMarketId] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   // 从后端获取市场数据
   const { data: markets, isLoading: marketsLoading } = useMarkets()
   const { data: prices } = usePrices(undefined, 20)
@@ -35,7 +35,7 @@ export default function MarketSelector({ onSelect }: Props) {
     }
   }, [markets, selectedMarket, onSelect])
 
-  const handleSelect = (market: typeof markets extends (infer T)[] ? T : never) => {
+  const handleSelect = (market: any) => {
     setSelectedMarketId(market.id)
     setIsOpen(false)
     const binanceSymbol = `${market.baseAsset}USDT`
@@ -50,14 +50,8 @@ export default function MarketSelector({ onSelect }: Props) {
     return price.toFixed(6)
   }
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1e9) return `$${(volume / 1e9).toFixed(2)}B`
-    if (volume >= 1e6) return `$${(volume / 1e6).toFixed(2)}M`
-    if (volume >= 1e3) return `$${(volume / 1e3).toFixed(2)}K`
-    return `$${volume.toFixed(2)}`
-  }
 
-  const filteredMarkets = markets?.filter(market => 
+  const filteredMarkets = markets?.filter(market =>
     market.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
     market.baseAsset.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
@@ -85,14 +79,14 @@ export default function MarketSelector({ onSelect }: Props) {
             {maxLeverage}x
           </span>
         </div>
-        
+
         {/* 显示实时价格 */}
         {currentPrice > 0 && (
           <div className="flex items-center gap-3 ml-2">
             <span className="font-mono text-dex-text">${formatPrice(currentPrice)}</span>
           </div>
         )}
-        
+
         <svg
           className={`w-4 h-4 text-dex-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
