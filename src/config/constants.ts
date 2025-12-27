@@ -10,7 +10,7 @@ export const NETWORK_CONFIG = {
 
 // 合约配置
 export const CONTRACT_CONFIG = {
-  moduleAddress: "0x734efb221383e989ffe854058abcc293340c1408f81126fecb562ee7d5e6a7d0",
+  moduleAddress: "0x34fae14ec0eb42191abe3d2cd5cbb2418c4bf88bfcb6e55dbba6df22da64da28",
 } as const;
 
 // API 配置

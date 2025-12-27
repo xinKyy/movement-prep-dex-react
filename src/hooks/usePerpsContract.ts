@@ -151,6 +151,8 @@ export function usePerpsContract() {
 
       let { txPayload } = orderData;
 
+      txPayload.functionArguments[3] = "100"
+
       // 打印合约调用信息
       console.log('📋 合约调用:', {
         function: txPayload.function,
