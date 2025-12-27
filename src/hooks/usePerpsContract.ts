@@ -25,15 +25,41 @@ export function usePerpsContract() {
       : account.address.toString();
   };
 
-  // 格式化参数 - 确保参数类型正确
+  /**
+   * 格式化合约调用参数
+   * 
+   * open_position_entry 参数格式:
+   * - market_id: u64    -> 数字转字符串
+   * - is_long: bool     -> 布尔值保持不变  
+   * - margin: u64       -> 已是字符串 (fixed point 1e8)
+   * - leverage: u64     -> 已是字符串 (fixed point 1e8)
+   * - admin_addr: address -> 已是字符串
+   * 
+   * 命令行格式参考:
+   * --args 'u64:0' 'bool:true' 'u64:margin' 'u64:leverage' 'address:admin'
+   */
   const formatFunctionArguments = (args: (string | number | boolean)[]) => {
-    return args.map(arg => {
-      // 数字转字符串
-      if (typeof arg === 'number') {
-        return arg.toString();
+    console.log('📝 原始参数:', args);
+    
+    const formatted = args.map((arg, index) => {
+      // 布尔值保持不变 (is_long)
+      if (typeof arg === 'boolean') {
+        console.log(`   [${index}] bool: ${arg}`);
+        return arg;
       }
+      // 数字转字符串 (market_id 等 u64 类型)
+      if (typeof arg === 'number') {
+        const str = arg.toString();
+        console.log(`   [${index}] u64 (number->string): ${arg} -> "${str}"`);
+        return str;
+      }
+      // 字符串保持不变 (margin, leverage, address)
+      console.log(`   [${index}] string: "${arg}"`);
       return arg;
     });
+    
+    console.log('📝 格式化后参数:', formatted);
+    return formatted;
   };
 
   // 模拟交易
@@ -121,9 +147,22 @@ export function usePerpsContract() {
         leverage,
       });
 
-      console.log('Order data from backend:', orderData);
+      console.log('📦 后端返回数据:', orderData);
 
       const { txPayload } = orderData;
+      
+      // 打印合约调用信息
+      console.log('📋 合约调用:', {
+        function: txPayload.function,
+        // 参数说明: open_position_entry(market_id: u64, is_long: bool, margin: u64, leverage: u64, admin_addr: address)
+        rawArgs: {
+          market_id: txPayload.functionArguments[0],   // u64
+          is_long: txPayload.functionArguments[1],     // bool
+          margin: txPayload.functionArguments[2],      // u64 (1e8 精度)
+          leverage: txPayload.functionArguments[3],    // u64 (1e8 精度)
+          admin_addr: txPayload.functionArguments[4],  // address
+        }
+      });
 
       // 2. 先模拟交易，确保能成功
       const simResult = await simulateTransaction(userAddr, txPayload);
@@ -132,11 +171,7 @@ export function usePerpsContract() {
       // 3. 模拟成功后，拉起钱包签名
       const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
       
-      console.log('🔐 拉起钱包签名...', {
-        function: txPayload.function,
-        typeArguments: [],
-        functionArguments: formattedArgs,
-      });
+      console.log('🔐 拉起钱包签名...');
 
       const response = await signAndSubmitTransaction({
         data: {
