@@ -1,11 +1,21 @@
 import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
+import { Aptos, AptosConfig, Network, InputEntryFunctionData } from '@aptos-labs/ts-sdk';
 import { apiService } from '../services/api';
+import { NETWORK_CONFIG } from '../config/constants';
+
+// 创建 Aptos 客户端（Movement Testnet）
+const aptosConfig = new AptosConfig({
+  network: Network.CUSTOM,
+  fullnode: NETWORK_CONFIG.nodeUrl,
+});
+const aptos = new Aptos(aptosConfig);
 
 export function usePerpsContract() {
   const { signAndSubmitTransaction, account, connected } = useWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState(false);
 
   // 获取地址字符串
   const getAddressString = () => {
@@ -13,6 +23,77 @@ export function usePerpsContract() {
     return typeof account.address === 'string' 
       ? account.address 
       : account.address.toString();
+  };
+
+  // 格式化参数 - 确保参数类型正确
+  const formatFunctionArguments = (args: (string | number | boolean)[]) => {
+    return args.map(arg => {
+      // 数字转字符串
+      if (typeof arg === 'number') {
+        return arg.toString();
+      }
+      return arg;
+    });
+  };
+
+  // 模拟交易
+  const simulateTransaction = async (
+    senderAddress: string,
+    payload: {
+      function: string;
+      functionArguments: (string | number | boolean)[];
+    }
+  ) => {
+    console.log('🔄 开始模拟交易...');
+    setSimulating(true);
+
+    try {
+      const formattedArgs = formatFunctionArguments(payload.functionArguments);
+      
+      // 构建交易数据
+      const transaction = await aptos.transaction.build.simple({
+        sender: senderAddress,
+        data: {
+          function: payload.function as `${string}::${string}::${string}`,
+          typeArguments: [],
+          functionArguments: formattedArgs,
+        } as InputEntryFunctionData,
+      });
+
+      // 模拟交易 (使用 any 处理版本不兼容问题)
+      const simulationResult = await aptos.transaction.simulate.simple({
+        signerPublicKey: account!.publicKey as any,
+        transaction,
+      });
+
+      console.log('📋 模拟结果:', simulationResult);
+
+      // 检查模拟结果
+      if (simulationResult && simulationResult.length > 0) {
+        const result = simulationResult[0];
+        
+        if (result.success) {
+          console.log('✅ 模拟交易成功!');
+          console.log('   - Gas 使用:', result.gas_used);
+          console.log('   - VM 状态:', result.vm_status);
+          return {
+            success: true,
+            gasUsed: result.gas_used,
+            vmStatus: result.vm_status,
+          };
+        } else {
+          console.error('❌ 模拟交易失败:', result.vm_status);
+          throw new Error(`模拟失败: ${result.vm_status}`);
+        }
+      }
+
+      throw new Error('模拟返回空结果');
+    } catch (err) {
+      console.error('❌ 模拟交易出错:', err);
+      throw err;
+    } finally {
+      setSimulating(false);
+    }
   };
 
   // 开仓
@@ -42,20 +123,33 @@ export function usePerpsContract() {
 
       console.log('Order data from backend:', orderData);
 
-      // 2. 使用后端返回的 txPayload 签名并提交交易
       const { txPayload } = orderData;
+
+      // 2. 先模拟交易，确保能成功
+      const simResult = await simulateTransaction(userAddr, txPayload);
+      console.log('✅ 模拟交易成功，预计 Gas:', simResult.gasUsed);
+
+      // 3. 模拟成功后，拉起钱包签名
+      const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
       
+      console.log('🔐 拉起钱包签名...', {
+        function: txPayload.function,
+        typeArguments: [],
+        functionArguments: formattedArgs,
+      });
+
       const response = await signAndSubmitTransaction({
         data: {
           function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: txPayload.functionArguments,
+          functionArguments: formattedArgs,
         },
       });
 
-      console.log('Transaction submitted:', response);
+      console.log('✅ 交易已提交:', response);
       return response;
     } catch (err) {
+      console.error('Open position error:', err);
       const message = err instanceof Error ? err.message : '开仓失败';
       setError(message);
       throw err;
@@ -67,7 +161,7 @@ export function usePerpsContract() {
   // 平仓
   const closePosition = useCallback(async (
     positionId: string,
-    _marketId?: number,      // 保留参数兼容性，但由后端 txPayload 处理
+    _marketId?: number,
     _chainPositionId?: string
   ) => {
     const userAddr = getAddressString();
@@ -87,20 +181,29 @@ export function usePerpsContract() {
 
       console.log('Close order data from backend:', orderData);
 
-      // 2. 使用后端返回的 txPayload 签名并提交交易
       const { txPayload } = orderData;
+
+      // 2. 先模拟交易，确保能成功
+      const simResult = await simulateTransaction(userAddr, txPayload);
+      console.log('✅ 模拟交易成功，预计 Gas:', simResult.gasUsed);
+
+      // 3. 模拟成功后，拉起钱包签名
+      const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
+
+      console.log('🔐 拉起钱包签名...');
 
       const response = await signAndSubmitTransaction({
         data: {
           function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: txPayload.functionArguments,
+          functionArguments: formattedArgs,
         },
       });
 
-      console.log('Transaction submitted:', response);
+      console.log('✅ 交易已提交:', response);
       return response;
     } catch (err) {
+      console.error('Close position error:', err);
       const message = err instanceof Error ? err.message : '平仓失败';
       setError(message);
       throw err;
@@ -109,7 +212,7 @@ export function usePerpsContract() {
     }
   }, [account, signAndSubmitTransaction]);
 
-  // 带滑点保护的平仓（直接调用合约）
+  // 带滑点保护的平仓
   const closePositionWithSlippage = useCallback(async (
     positionId: string,
     minExitPrice?: number
@@ -123,7 +226,6 @@ export function usePerpsContract() {
     setError(null);
 
     try {
-      // 从后端获取交易 payload（带滑点保护价格）
       const orderData = await apiService.createCloseOrder({
         positionId,
         userAddr,
@@ -134,17 +236,27 @@ export function usePerpsContract() {
 
       const { txPayload } = orderData;
 
+      // 2. 先模拟交易，确保能成功
+      const simResult = await simulateTransaction(userAddr, txPayload);
+      console.log('✅ 模拟交易成功，预计 Gas:', simResult.gasUsed);
+
+      // 3. 模拟成功后，拉起钱包签名
+      const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
+
+      console.log('🔐 拉起钱包签名...');
+
       const response = await signAndSubmitTransaction({
         data: {
           function: txPayload.function as `${string}::${string}::${string}`,
           typeArguments: [],
-          functionArguments: txPayload.functionArguments,
+          functionArguments: formattedArgs,
         },
       });
 
-      console.log('Transaction submitted:', response);
+      console.log('✅ 交易已提交:', response);
       return response;
     } catch (err) {
+      console.error('Close position with slippage error:', err);
       const message = err instanceof Error ? err.message : '平仓失败';
       setError(message);
       throw err;
@@ -158,6 +270,7 @@ export function usePerpsContract() {
     closePosition,
     closePositionWithSlippage,
     loading,
+    simulating,
     error,
     connected,
     address: getAddressString(),

@@ -12,7 +12,7 @@ interface Props {
 
 export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const { account, connected } = useWallet()
-  const { openPosition, loading: txLoading, error: txError } = usePerpsContract()
+  const { openPosition, loading: txLoading, simulating, error: txError } = usePerpsContract()
   const { data: market } = useMarket(marketId)
 
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market')
@@ -225,20 +225,28 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
           <div className="space-y-3">
             <button
               onClick={handleOpenPosition}
-              disabled={isSubmitting || txLoading || margin <= 0}
+              disabled={isSubmitting || txLoading || simulating || margin <= 0}
               className={`w-full py-3.5 rounded-lg font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 side === 'long'
                   ? 'bg-dex-green hover:bg-dex-green/90'
                   : 'bg-dex-red hover:bg-dex-red/90'
               }`}
             >
-              {isSubmitting || txLoading ? (
+              {simulating ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  处理中...
+                  🔄 模拟交易中...
+                </span>
+              ) : isSubmitting || txLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  🔐 等待签名...
                 </span>
               ) : (
                 side === 'long' ? '买入/做多' : '卖出/做空'
