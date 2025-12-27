@@ -20,27 +20,27 @@ export function usePerpsContract() {
   // 获取地址字符串
   const getAddressString = () => {
     if (!account?.address) return null;
-    return typeof account.address === 'string' 
-      ? account.address 
+    return typeof account.address === 'string'
+      ? account.address
       : account.address.toString();
   };
 
   /**
    * 格式化合约调用参数
-   * 
+   *
    * open_position_entry 参数格式:
    * - market_id: u64    -> 数字转字符串
-   * - is_long: bool     -> 布尔值保持不变  
+   * - is_long: bool     -> 布尔值保持不变
    * - margin: u64       -> 已是字符串 (fixed point 1e8)
    * - leverage: u64     -> 已是字符串 (fixed point 1e8)
    * - admin_addr: address -> 已是字符串
-   * 
+   *
    * 命令行格式参考:
    * --args 'u64:0' 'bool:true' 'u64:margin' 'u64:leverage' 'address:admin'
    */
   const formatFunctionArguments = (args: (string | number | boolean)[]) => {
     console.log('📝 原始参数:', args);
-    
+
     const formatted = args.map((arg, index) => {
       // 布尔值保持不变 (is_long)
       if (typeof arg === 'boolean') {
@@ -57,7 +57,7 @@ export function usePerpsContract() {
       console.log(`   [${index}] string: "${arg}"`);
       return arg;
     });
-    
+
     console.log('📝 格式化后参数:', formatted);
     return formatted;
   };
@@ -75,7 +75,7 @@ export function usePerpsContract() {
 
     try {
       const formattedArgs = formatFunctionArguments(payload.functionArguments);
-      
+
       // 构建交易数据
       const transaction = await aptos.transaction.build.simple({
         sender: senderAddress,
@@ -97,7 +97,7 @@ export function usePerpsContract() {
       // 检查模拟结果
       if (simulationResult && simulationResult.length > 0) {
         const result = simulationResult[0];
-        
+
         if (result.success) {
           console.log('✅ 模拟交易成功!');
           console.log('   - Gas 使用:', result.gas_used);
@@ -149,8 +149,10 @@ export function usePerpsContract() {
 
       console.log('📦 后端返回数据:', orderData);
 
-      const { txPayload } = orderData;
-      
+      let { txPayload } = orderData;
+
+      txPayload.functionArguments[4] = "0x3207be31c639935748146bf5c6a68998986ff99426937369010f21444e68bc90"
+
       // 打印合约调用信息
       console.log('📋 合约调用:', {
         function: txPayload.function,
@@ -170,7 +172,7 @@ export function usePerpsContract() {
 
       // 3. 模拟成功后，拉起钱包签名
       const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
-      
+
       console.log('🔐 拉起钱包签名...');
 
       const response = await signAndSubmitTransaction({
