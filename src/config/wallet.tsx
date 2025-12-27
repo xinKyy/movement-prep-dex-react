@@ -21,6 +21,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
         'OKX Wallet',        // Movement 推荐
         'Petra',             // Aptos 官方
         'Pontem Wallet',
+        "Razor Wallet" as any
       ]}
       onError={(error) => {
         console.error('Wallet error:', error);
