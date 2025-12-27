@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 
 interface OrderLevel {
   price: number
@@ -10,6 +10,9 @@ interface Props {
   symbol?: string
 }
 
+// 固定显示的订单数量
+const ORDER_ROWS = 12
+
 export default function OrderBook({ symbol = 'BTCUSDT' }: Props) {
   const [bids, setBids] = useState<OrderLevel[]>([])
   const [asks, setAsks] = useState<OrderLevel[]>([])
@@ -17,38 +20,46 @@ export default function OrderBook({ symbol = 'BTCUSDT' }: Props) {
   const [priceDirection, setPriceDirection] = useState<'up' | 'down' | null>(null)
   const [spread, setSpread] = useState({ value: 0, percent: 0 })
   const wsRef = useRef<WebSocket | null>(null)
+  
+  // 缓冲区：累积数据直到填满
+  const pendingBidsRef = useRef<OrderLevel[]>([])
+  const pendingAsksRef = useRef<OrderLevel[]>([])
+  const lastUpdateRef = useRef<number>(0)
+  
+  // 更新间隔（毫秒）- 控制刷新速度
+  const UPDATE_INTERVAL = 1000 // 每秒更新一次
 
-  useEffect(() => {
-    // 获取初始订单簿数据
-    const fetchOrderBook = async () => {
-      try {
-        const response = await fetch(
-          `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=20`
-        )
-        const data = await response.json()
-        processOrderBook(data.bids, data.asks)
-      } catch (error) {
-        console.error('Failed to fetch order book:', error)
-      }
-    }
+  // 处理订单簿数据
+  const processOrderBook = useCallback((rawBids: string[][], rawAsks: string[][]) => {
+    let bidTotal = 0
+    const processedBids: OrderLevel[] = rawBids.slice(0, ORDER_ROWS).map((bid) => {
+      const price = parseFloat(bid[0])
+      const quantity = parseFloat(bid[1])
+      bidTotal += quantity
+      return { price, quantity, total: bidTotal }
+    })
 
-    const processOrderBook = (rawBids: string[][], rawAsks: string[][]) => {
-      let bidTotal = 0
-      const processedBids: OrderLevel[] = rawBids.slice(0, 15).map((bid) => {
-        const price = parseFloat(bid[0])
-        const quantity = parseFloat(bid[1])
-        bidTotal += quantity
-        return { price, quantity, total: bidTotal }
-      })
+    let askTotal = 0
+    const processedAsks: OrderLevel[] = rawAsks.slice(0, ORDER_ROWS).reverse().map((ask) => {
+      const price = parseFloat(ask[0])
+      const quantity = parseFloat(ask[1])
+      askTotal += quantity
+      return { price, quantity, total: askTotal }
+    }).reverse()
 
-      let askTotal = 0
-      const processedAsks: OrderLevel[] = rawAsks.slice(0, 15).reverse().map((ask) => {
-        const price = parseFloat(ask[0])
-        const quantity = parseFloat(ask[1])
-        askTotal += quantity
-        return { price, quantity, total: askTotal }
-      }).reverse()
+    // 存入缓冲区
+    pendingBidsRef.current = processedBids
+    pendingAsksRef.current = processedAsks
 
+    // 检查是否满足更新条件：数据填满且距离上次更新超过间隔
+    const now = Date.now()
+    const shouldUpdate = 
+      processedBids.length >= ORDER_ROWS && 
+      processedAsks.length >= ORDER_ROWS &&
+      (now - lastUpdateRef.current) >= UPDATE_INTERVAL
+
+    if (shouldUpdate) {
+      lastUpdateRef.current = now
       setBids(processedBids)
       setAsks(processedAsks)
 
@@ -61,11 +72,28 @@ export default function OrderBook({ symbol = 'BTCUSDT' }: Props) {
         setSpread({ value: spreadValue, percent: spreadPercent })
       }
     }
+  }, [])
+
+  useEffect(() => {
+    // 获取初始订单簿数据
+    const fetchOrderBook = async () => {
+      try {
+        const response = await fetch(
+          `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=20`
+        )
+        const data = await response.json()
+        // 初始数据直接显示
+        lastUpdateRef.current = 0
+        processOrderBook(data.bids, data.asks)
+      } catch (error) {
+        console.error('Failed to fetch order book:', error)
+      }
+    }
 
     fetchOrderBook()
 
-    // WebSocket 实时更新
-    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth@100ms`)
+    // WebSocket 实时更新 - 使用较慢的更新频率
+    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth@1000ms`)
     wsRef.current = ws
 
     ws.onmessage = (event) => {
@@ -75,10 +103,30 @@ export default function OrderBook({ symbol = 'BTCUSDT' }: Props) {
       }
     }
 
-    // 获取实时价格
+    // 定时器：确保即使 WebSocket 数据不足也能定期更新
+    const intervalId = setInterval(() => {
+      const now = Date.now()
+      if (
+        pendingBidsRef.current.length > 0 && 
+        pendingAsksRef.current.length > 0 &&
+        (now - lastUpdateRef.current) >= UPDATE_INTERVAL
+      ) {
+        lastUpdateRef.current = now
+        setBids(pendingBidsRef.current)
+        setAsks(pendingAsksRef.current)
+      }
+    }, UPDATE_INTERVAL)
+
+    // 获取实时价格 - 节流处理
     const priceWs = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@trade`)
+    let lastPriceUpdate = 0
+    const PRICE_UPDATE_INTERVAL = 500 // 价格每500ms更新一次
     
     priceWs.onmessage = (event) => {
+      const now = Date.now()
+      if (now - lastPriceUpdate < PRICE_UPDATE_INTERVAL) return
+      lastPriceUpdate = now
+
       const data = JSON.parse(event.data)
       const newPrice = parseFloat(data.p)
       setLastPrice((prev) => {
@@ -91,8 +139,9 @@ export default function OrderBook({ symbol = 'BTCUSDT' }: Props) {
     return () => {
       ws.close()
       priceWs.close()
+      clearInterval(intervalId)
     }
-  }, [symbol])
+  }, [symbol, processOrderBook])
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', {
