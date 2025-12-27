@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { Aptos, AptosConfig, Network, InputEntryFunctionData } from '@aptos-labs/ts-sdk';
 import { apiService } from '../services/api';
-import { NETWORK_CONFIG } from '../config/constants';
+import { NETWORK_CONFIG, CONTRACT_CONFIG, PRECISION } from '../config/constants';
 
 // 创建 Aptos 客户端（Movement Testnet）
 const aptosConfig = new AptosConfig({
@@ -10,6 +10,9 @@ const aptosConfig = new AptosConfig({
   fullnode: NETWORK_CONFIG.nodeUrl,
 });
 const aptos = new Aptos(aptosConfig);
+
+// 合约地址
+const MODULE_ADDRESS = CONTRACT_CONFIG.moduleAddress;
 
 export function usePerpsContract() {
   const { signAndSubmitTransaction, account, connected } = useWallet();
@@ -61,6 +64,70 @@ export function usePerpsContract() {
     console.log('📝 格式化后参数:', formatted);
     return formatted;
   };
+
+  // 存入流动性到 Vault (LP 功能)
+  // deposit_fa(account, admin_addr, market_id_val, token_id, amount)
+  const depositToVault = useCallback(async (
+    marketId: number,
+    tokenId: number,
+    amount: number, // 实际金额，会自动转换为 1e8 精度
+  ) => {
+    const userAddr = getAddressString();
+    if (!userAddr) {
+      throw new Error('请先连接钱包');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 转换为固定精度 (1e8)
+      const amountFixed = Math.floor(amount * PRECISION).toString();
+
+      const txPayload = {
+        function: `${MODULE_ADDRESS}::perps::deposit_fa`,
+        functionArguments: [
+          MODULE_ADDRESS,        // admin_addr: address
+          marketId.toString(),   // market_id_val: u64
+          tokenId.toString(),    // token_id: u64
+          amountFixed,           // amount: u64
+        ],
+      };
+
+      console.log('💰 存入流动性:', {
+        admin_addr: MODULE_ADDRESS,
+        market_id: marketId,
+        token_id: tokenId,
+        amount: amount,
+        amount_fixed: amountFixed,
+      });
+
+      // 先模拟交易
+      const simResult = await simulateTransaction(userAddr, txPayload);
+      console.log('✅ 模拟存入成功，预计 Gas:', simResult.gasUsed);
+
+      // 模拟成功后，拉起钱包签名
+      console.log('🔐 拉起钱包签名...');
+
+      const response = await signAndSubmitTransaction({
+        data: {
+          function: txPayload.function as `${string}::${string}::${string}`,
+          typeArguments: [],
+          functionArguments: txPayload.functionArguments,
+        },
+      });
+
+      console.log('✅ 存入成功:', response);
+      return response;
+    } catch (err) {
+      console.error('Deposit error:', err);
+      const message = err instanceof Error ? err.message : '存入失败';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [account, signAndSubmitTransaction]);
 
   // 模拟交易
   const simulateTransaction = async (
@@ -149,9 +216,7 @@ export function usePerpsContract() {
 
       console.log('📦 后端返回数据:', orderData);
 
-      let { txPayload } = orderData;
-
-      txPayload.functionArguments[3] = "100"
+      const { txPayload } = orderData;
 
       // 打印合约调用信息
       console.log('📋 合约调用:', {
@@ -303,6 +368,7 @@ export function usePerpsContract() {
   }, [account, signAndSubmitTransaction]);
 
   return {
+    depositToVault,
     openPosition,
     closePosition,
     closePositionWithSlippage,

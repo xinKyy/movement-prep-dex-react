@@ -12,7 +12,7 @@ interface Props {
 
 export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const { account, connected } = useWallet()
-  const { openPosition, loading: txLoading, simulating, error: txError } = usePerpsContract()
+  const { openPosition, depositToVault, loading: txLoading, simulating, error: txError } = usePerpsContract()
   const { data: market } = useMarket(marketId)
 
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market')
@@ -24,6 +24,9 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [showLeverageMenu, setShowLeverageMenu] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [depositAmount, setDepositAmount] = useState('')
+  const [showDepositModal, setShowDepositModal] = useState(false)
+  const [isDepositing, setIsDepositing] = useState(false)
 
   const leverageOptions = [1, 2, 5, 10, 20, 50, 100]
   const sliderSteps = [0, 25, 50, 75, 100]
@@ -39,6 +42,27 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const feeRate = market ? fromFixed(market.feeRate) : 0.001
   const fee = notional * feeRate
   const maxLeverage = market ? fromFixed(market.maxLeverage) : 100
+
+  // 处理存入流动性
+  const handleDeposit = async () => {
+    const depositValue = parseFloat(depositAmount)
+    if (!connected || !account?.address || depositValue <= 0) return
+
+    setIsDepositing(true)
+    try {
+      // token_id: 0 = USDT (默认结算代币)
+      const result = await depositToVault(marketId, 0, depositValue)
+      console.log('Deposit success:', result)
+      setDepositAmount('')
+      setShowDepositModal(false)
+      alert('存入成功！')
+    } catch (error) {
+      console.error('Failed to deposit:', error)
+      alert(`存入失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    } finally {
+      setIsDepositing(false)
+    }
+  }
 
   // 处理开仓
   const handleOpenPosition = async () => {
@@ -106,7 +130,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
         </div>
         <select className="px-3 py-1.5 bg-dex-card border border-dex-border rounded text-sm text-dex-text">
           <option>USDT</option>
-          <option>FUSD</option>
+          <option>USDT</option>
         </select>
       </div>
 
@@ -155,9 +179,19 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
       <div className="px-4 space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-dex-text-secondary">可用</span>
-          <span className="text-dex-text font-mono">
-            {connected ? '1,000.00 FUSD' : '0.00 FUSD'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-dex-text font-mono">
+              {connected ? '1,000.00 USDT' : '0.00 USDT'}
+            </span>
+            {connected && (
+              <button
+                onClick={() => setShowDepositModal(true)}
+                className="text-xs text-dex-cyan hover:text-dex-cyan/80"
+              >
+                存入
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-dex-text-secondary">当前仓位</span>
@@ -178,7 +212,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
               className="flex-1 px-3 py-2.5 bg-transparent text-dex-text font-mono outline-none"
             />
             <span className="px-3 py-2.5 text-dex-text border-l border-dex-border">
-              FUSD
+              USDT
             </span>
           </div>
         </div>
@@ -276,6 +310,74 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
         isOpen={showWalletModal} 
         onClose={() => setShowWalletModal(false)} 
       />
+
+      {/* 存入弹窗 */}
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-black/60" 
+            onClick={() => setShowDepositModal(false)}
+          />
+          <div className="relative bg-dex-card border border-dex-border rounded-xl p-6 w-80 animate-scale-in">
+            <h3 className="text-lg font-bold text-dex-text mb-4">存入流动性</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-dex-text-secondary mb-2 block">
+                  存入金额 (USDT)
+                </label>
+                <input
+                  type="number"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2.5 bg-dex-bg border border-dex-border rounded text-dex-text font-mono outline-none focus:border-dex-cyan"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                {[100, 500, 1000].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setDepositAmount(val.toString())}
+                    className="flex-1 py-1.5 text-xs bg-dex-bg hover:bg-dex-border border border-dex-border rounded text-dex-text-secondary"
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setShowDepositModal(false)}
+                  className="flex-1 py-2.5 rounded border border-dex-border text-dex-text-secondary hover:text-dex-text"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDeposit}
+                  disabled={isDepositing || !depositAmount || parseFloat(depositAmount) <= 0}
+                  className="flex-1 py-2.5 rounded bg-dex-cyan text-black font-medium hover:bg-dex-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDepositing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      存入中...
+                    </span>
+                  ) : '确认存入'}
+                </button>
+              </div>
+
+              <p className="text-xs text-dex-text-secondary text-center">
+                存入流动性后可作为 LP 获得交易手续费分成
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 底部信息 */}
       <div className="px-4 pb-4 space-y-2 text-xs">
