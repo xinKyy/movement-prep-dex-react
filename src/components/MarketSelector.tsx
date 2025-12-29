@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMarkets, usePrices } from '../hooks/useApi'
-import { fromFixed, MARKET_INFO } from '../config/constants'
+import { MARKET_INFO } from '../config/constants'
 
 interface Props {
   onSelect?: (binanceSymbol: string, displaySymbol: string, marketId: number) => void
@@ -19,10 +19,10 @@ export default function MarketSelector({ onSelect }: Props) {
   const selectedMarket = markets?.find(m => m.id === selectedMarketId)
   const selectedMarketInfo = MARKET_INFO[selectedMarketId]
 
-  // 获取市场价格
+  // 获取市场价格 - 后端已返回转换后的数值字符串
   const getMarketPrice = (marketId: number) => {
     const priceData = prices?.find(p => p.marketId === marketId)
-    return priceData ? fromFixed(priceData.price) : 0
+    return priceData ? parseFloat(priceData.price) : 0
   }
 
   // 初始选择
@@ -57,7 +57,7 @@ export default function MarketSelector({ onSelect }: Props) {
   ) || []
 
   const currentPrice = getMarketPrice(selectedMarketId)
-  const maxLeverage = selectedMarket ? fromFixed(selectedMarket.maxLeverage) : 100
+  const maxLeverage = selectedMarket ? parseFloat(selectedMarket.maxLeverage) : 100
 
   return (
     <div className="relative">
@@ -139,8 +139,8 @@ export default function MarketSelector({ onSelect }: Props) {
                 filteredMarkets.map((market) => {
                   const marketInfo = MARKET_INFO[market.id]
                   const price = getMarketPrice(market.id)
-                  const leverage = fromFixed(market.maxLeverage)
-                  const feeRate = fromFixed(market.feeRate) * 100
+                  const leverage = parseFloat(market.maxLeverage)
+                  const feeRate = parseFloat(market.feeRate) * 100
 
                   return (
                     <button

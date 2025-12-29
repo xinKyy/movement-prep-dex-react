@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { usePerpsContract } from '../hooks/usePerpsContract'
 import { useMarket } from '../hooks/useApi'
-import { fromFixed } from '../config/constants'
 import WalletModal from './WalletModal'
 import { useToast } from './Toast'
 
@@ -48,9 +47,10 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   // 计算预估值
   const margin = parseFloat(amount) || 0
   const notional = margin * leverage
-  const feeRate = market ? fromFixed(market.feeRate) : 0.001
+  // 后端已经返回转换后的数值字符串，直接解析即可
+  const feeRate = market ? parseFloat(market.feeRate) : 0.001
   const fee = notional * feeRate
-  const maxLeverage = market ? fromFixed(market.maxLeverage) : 100
+  const maxLeverage = market ? parseFloat(market.maxLeverage) : 100
 
   // 处理存入流动性
   const handleDeposit = async () => {

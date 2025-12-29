@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { usePositions } from '../hooks/useApi'
 import { usePerpsContract } from '../hooks/usePerpsContract'
-import { fromFixed, MARKET_INFO } from '../config/constants'
+import { MARKET_INFO } from '../config/constants'
 import { useToast } from './Toast'
 
 type Tab = 'positions' | 'orders' | 'history'
@@ -25,9 +25,9 @@ export default function PositionsPanel() {
     { id: 'history', label: '历史', count: historyPositions.length > 0 ? historyPositions.length : undefined },
   ]
 
-  // 格式化数字
+  // 格式化数字 - 后端已经返回转换后的数值字符串，直接解析即可
   const formatNumber = (value: string | number, decimals = 2) => {
-    const num = typeof value === 'string' ? fromFixed(value) : value
+    const num = typeof value === 'string' ? parseFloat(value) : value
     return num.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
@@ -37,7 +37,7 @@ export default function PositionsPanel() {
   // 格式化 PnL
   const formatPnL = (pnl: string | undefined) => {
     if (!pnl) return { value: '0.00', isPositive: true }
-    const num = fromFixed(pnl)
+    const num = parseFloat(pnl)
     return {
       value: (num >= 0 ? '+' : '') + formatNumber(num),
       isPositive: num >= 0,
