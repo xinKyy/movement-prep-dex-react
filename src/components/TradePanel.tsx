@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { usePerpsContract } from '../hooks/usePerpsContract'
 import { useMarket } from '../hooks/useApi'
 import { fromFixed } from '../config/constants'
 import WalletModal from './WalletModal'
+import { useToast } from './Toast'
 
 interface Props {
   symbol?: string
@@ -12,8 +13,16 @@ interface Props {
 
 export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const { account, connected } = useWallet()
-  const { openPosition, depositToVault, loading: txLoading, simulating, error: txError } = usePerpsContract()
+  const { openPosition, depositToVault, getUserBalance, balance, loading: txLoading, simulating, error: txError } = usePerpsContract()
   const { data: market } = useMarket(marketId)
+  const { showToast } = useToast()
+
+  // 钱包连接时获取余额
+  useEffect(() => {
+    if (connected && account?.address) {
+      getUserBalance()
+    }
+  }, [connected, account?.address, getUserBalance])
 
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market')
   const [side, setSide] = useState<'long' | 'short'>('long')
@@ -55,10 +64,11 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
       console.log('Deposit success:', result)
       setDepositAmount('')
       setShowDepositModal(false)
-      alert('存入成功！')
+      showToast('存入成功！', 'success')
+      getUserBalance() // 刷新余额
     } catch (error) {
       console.error('Failed to deposit:', error)
-      alert(`存入失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      showToast(`存入失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error')
     } finally {
       setIsDepositing(false)
     }
@@ -78,10 +88,11 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
       )
       console.log('Position opened:', result)
       setAmount('') // 清空输入
-      alert('开仓成功！')
+      showToast('开仓成功！', 'success')
+      getUserBalance() // 刷新余额
     } catch (error) {
       console.error('Failed to open position:', error)
-      alert(`开仓失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      showToast(`开仓失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -181,7 +192,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
           <span className="text-dex-text-secondary">可用</span>
           <div className="flex items-center gap-2">
             <span className="text-dex-text font-mono">
-              {connected ? '1,000.00 USDT' : '0.00 USDT'}
+              {connected ? `${balance !== null ? balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '...'} USDT` : '0.00 USDT'}
             </span>
             {connected && (
               <button
@@ -222,7 +233,10 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
           {sliderSteps.map((step) => (
             <button
               key={step}
-              onClick={() => setAmount(((1000 * step) / 100).toString())}
+              onClick={() => {
+                const availableBalance = balance || 0
+                setAmount(((availableBalance * step) / 100).toString())
+              }}
               className="flex-1 py-1.5 text-xs bg-dex-card hover:bg-dex-border border border-dex-border rounded transition-colors text-dex-text-secondary"
             >
               {step}%
@@ -314,35 +328,51 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
       {/* 存入弹窗 */}
       {showDepositModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
-            className="absolute inset-0 bg-black/60" 
+          <div
+            className="absolute inset-0 bg-black/60"
             onClick={() => setShowDepositModal(false)}
           />
           <div className="relative bg-dex-card border border-dex-border rounded-xl p-6 w-80 animate-scale-in">
             <h3 className="text-lg font-bold text-dex-text mb-4">存入流动性</h3>
-            
+
             <div className="space-y-4">
+              {/* 可用余额 */}
+              <div className="flex justify-between text-sm">
+                <span className="text-dex-text-secondary">可用余额</span>
+                <span className="text-dex-text font-mono">
+                  {balance !== null ? balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '...'} USDT
+                </span>
+              </div>
+
               <div>
                 <label className="text-sm text-dex-text-secondary mb-2 block">
                   存入金额 (USDT)
                 </label>
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2.5 bg-dex-bg border border-dex-border rounded text-dex-text font-mono outline-none focus:border-dex-cyan"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2.5 pr-16 bg-dex-bg border border-dex-border rounded text-dex-text font-mono outline-none focus:border-dex-cyan"
+                  />
+                  <button
+                    onClick={() => setDepositAmount((balance || 0).toString())}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-dex-cyan hover:text-dex-cyan/80 font-medium"
+                  >
+                    MAX
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-2">
-                {[100, 500, 1000].map((val) => (
+                {[25, 50, 75, 100].map((pct) => (
                   <button
-                    key={val}
-                    onClick={() => setDepositAmount(val.toString())}
+                    key={pct}
+                    onClick={() => setDepositAmount(((balance || 0) * pct / 100).toString())}
                     className="flex-1 py-1.5 text-xs bg-dex-bg hover:bg-dex-border border border-dex-border rounded text-dex-text-secondary"
                   >
-                    {val}
+                    {pct}%
                   </button>
                 ))}
               </div>
@@ -356,7 +386,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
                 </button>
                 <button
                   onClick={handleDeposit}
-                  disabled={isDepositing || !depositAmount || parseFloat(depositAmount) <= 0}
+                  disabled={isDepositing || !depositAmount || parseFloat(depositAmount) <= 0 || parseFloat(depositAmount) > (balance || 0)}
                   className="flex-1 py-2.5 rounded bg-dex-cyan text-black font-medium hover:bg-dex-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isDepositing ? (

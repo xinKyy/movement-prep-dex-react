@@ -19,6 +19,7 @@ export function usePerpsContract() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [simulating, setSimulating] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
 
   // 获取地址字符串
   const getAddressString = () => {
@@ -27,6 +28,32 @@ export function usePerpsContract() {
       ? account.address
       : account.address.toString();
   };
+
+  // 获取用户 USDT 余额
+  const getUserBalance = useCallback(async () => {
+    const userAddr = getAddressString();
+    if (!userAddr) return null;
+
+    try {
+      // 调用 mock_usdt::balance_of 查询余额
+      const result = await aptos.view({
+        payload: {
+          function: `${MODULE_ADDRESS}::mock_usdt::balance_of`,
+          functionArguments: [MODULE_ADDRESS, userAddr],
+        },
+      });
+
+      if (result && result.length > 0) {
+        const balanceValue = Number(result[0]) / PRECISION;
+        setBalance(balanceValue);
+        return balanceValue;
+      }
+      return 0;
+    } catch (err) {
+      console.error('Failed to get balance:', err);
+      return null;
+    }
+  }, [account]);
 
   /**
    * 格式化合约调用参数
@@ -189,14 +216,12 @@ export function usePerpsContract() {
     }
   };
 
-  // 开仓 - 使用命令行验证过的参数格式
-  // 命令行成功案例:
-  // --args 'u64:1' 'bool:false' 'u64:1000000000' 'u64:10' 'address:0x34fae...'
+  // 开仓 - 合约参数格式
   // 参数说明:
-  // - market_id: u64 (0=BTC, 1=ETH, 2=MOVE)
+  // - market_id: u64 (0=BTC, 1=ETH, 2=MOVE, 3=SOL, 4=ARB)
   // - is_long: bool (true=做多, false=做空)
   // - margin: u64 (金额 * 1e8, 如 10 USDT = 1000000000)
-  // - leverage: u64 (杠杆倍数，直接是数字，如 10 表示 10 倍)
+  // - leverage: u64 (杠杆倍数 * 1e8, 如 10x = 1000000000)
   // - admin_addr: address (合约管理地址)
   const openPosition = useCallback(async (
     marketId: number,
@@ -213,11 +238,11 @@ export function usePerpsContract() {
     setError(null);
 
     try {
-      // 直接构建交易参数（使用命令行验证过的格式）
+      // 直接构建交易参数
       // margin 需要转换为 1e8 精度
       const marginFixed = Math.floor(margin * PRECISION).toString();
-      // leverage 直接是倍数，不需要转换！
-      const leverageValue = Math.floor(leverage).toString();
+      // leverage 也需要转换为 1e8 精度！合约中使用 mul_fixed 计算 notional
+      const leverageFixed = Math.floor(leverage * PRECISION).toString();
 
       const txPayload = {
         function: `${MODULE_ADDRESS}::perps::open_position_entry`,
@@ -225,23 +250,21 @@ export function usePerpsContract() {
           marketId.toString(),     // market_id: u64
           isLong,                   // is_long: bool
           marginFixed,              // margin: u64 (1e8 精度)
-          leverageValue,            // leverage: u64 (直接倍数!)
+          leverageFixed,            // leverage: u64 (1e8 精度)
           MODULE_ADDRESS,           // admin_addr: address
         ],
       };
 
       // 打印合约调用信息
-      console.log('📋 合约调用（命令行格式）:', {
+      console.log('📋 合约调用:', {
         function: txPayload.function,
         args: {
           market_id: marketId,
           is_long: isLong,
           margin: `${margin} USDT -> ${marginFixed}`,
-          leverage: `${leverage}x -> ${leverageValue}`,
+          leverage: `${leverage}x -> ${leverageFixed}`,
           admin_addr: MODULE_ADDRESS,
         },
-        // 对应命令行格式:
-        cli_format: `movement move run --function-id ${MODULE_ADDRESS}::perps::open_position_entry --args 'u64:${marketId}' 'bool:${isLong}' 'u64:${marginFixed}' 'u64:${leverageValue}' 'address:${MODULE_ADDRESS}'`
       });
 
       // 2. 先模拟交易，确保能成功
@@ -385,6 +408,8 @@ export function usePerpsContract() {
     openPosition,
     closePosition,
     closePositionWithSlippage,
+    getUserBalance,
+    balance,
     loading,
     simulating,
     error,
