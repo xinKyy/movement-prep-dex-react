@@ -189,7 +189,15 @@ export function usePerpsContract() {
     }
   };
 
-  // 开仓
+  // 开仓 - 使用命令行验证过的参数格式
+  // 命令行成功案例:
+  // --args 'u64:1' 'bool:false' 'u64:1000000000' 'u64:10' 'address:0x34fae...'
+  // 参数说明:
+  // - market_id: u64 (0=BTC, 1=ETH, 2=MOVE)
+  // - is_long: bool (true=做多, false=做空)
+  // - margin: u64 (金额 * 1e8, 如 10 USDT = 1000000000)
+  // - leverage: u64 (杠杆倍数，直接是数字，如 10 表示 10 倍)
+  // - admin_addr: address (合约管理地址)
   const openPosition = useCallback(async (
     marketId: number,
     isLong: boolean,
@@ -205,30 +213,35 @@ export function usePerpsContract() {
     setError(null);
 
     try {
-      // 1. 从后端获取交易 payload
-      const orderData = await apiService.createOpenOrder({
-        userAddr,
-        marketId,
-        side: isLong ? 'LONG' : 'SHORT',
-        margin,
-        leverage,
-      });
+      // 直接构建交易参数（使用命令行验证过的格式）
+      // margin 需要转换为 1e8 精度
+      const marginFixed = Math.floor(margin * PRECISION).toString();
+      // leverage 直接是倍数，不需要转换！
+      const leverageValue = Math.floor(leverage).toString();
 
-      console.log('📦 后端返回数据:', orderData);
-
-      const { txPayload } = orderData;
+      const txPayload = {
+        function: `${MODULE_ADDRESS}::perps::open_position_entry`,
+        functionArguments: [
+          marketId.toString(),     // market_id: u64
+          isLong,                   // is_long: bool
+          marginFixed,              // margin: u64 (1e8 精度)
+          leverageValue,            // leverage: u64 (直接倍数!)
+          MODULE_ADDRESS,           // admin_addr: address
+        ],
+      };
 
       // 打印合约调用信息
-      console.log('📋 合约调用:', {
+      console.log('📋 合约调用（命令行格式）:', {
         function: txPayload.function,
-        // 参数说明: open_position_entry(market_id: u64, is_long: bool, margin: u64, leverage: u64, admin_addr: address)
-        rawArgs: {
-          market_id: txPayload.functionArguments[0],   // u64
-          is_long: txPayload.functionArguments[1],     // bool
-          margin: txPayload.functionArguments[2],      // u64 (1e8 精度)
-          leverage: txPayload.functionArguments[3],    // u64 (1e8 精度)
-          admin_addr: txPayload.functionArguments[4],  // address
-        }
+        args: {
+          market_id: marketId,
+          is_long: isLong,
+          margin: `${margin} USDT -> ${marginFixed}`,
+          leverage: `${leverage}x -> ${leverageValue}`,
+          admin_addr: MODULE_ADDRESS,
+        },
+        // 对应命令行格式:
+        cli_format: `movement move run --function-id ${MODULE_ADDRESS}::perps::open_position_entry --args 'u64:${marketId}' 'bool:${isLong}' 'u64:${marginFixed}' 'u64:${leverageValue}' 'address:${MODULE_ADDRESS}'`
       });
 
       // 2. 先模拟交易，确保能成功
