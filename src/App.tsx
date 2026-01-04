@@ -30,9 +30,9 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
 
         {/* 中间图表区 */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* 市场选择器 */}
-          <div className="px-4 py-2 border-b border-dex-border">
+          <div className="px-4 py-2 border-b border-dex-border flex-shrink-0">
             <MarketSelector onSelect={handleMarketChange} />
           </div>
 
@@ -41,8 +41,10 @@ function App() {
             <TradingChart symbol={symbol} interval={interval} marketId={marketId} />
           </div>
 
-          {/* 持仓面板 */}
-          <PositionsPanel />
+          {/* 持仓面板 - 固定高度 */}
+          <div className="flex-shrink-0">
+            <PositionsPanel />
+          </div>
         </div>
 
         {/* 右侧面板 */}

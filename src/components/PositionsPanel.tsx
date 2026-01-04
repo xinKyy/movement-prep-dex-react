@@ -63,9 +63,9 @@ export default function PositionsPanel() {
   }
 
   return (
-    <div className="bg-dex-bg border-t border-dex-border">
-      {/* 标签页 */}
-      <div className="flex items-center gap-6 px-4 border-b border-dex-border">
+    <div className="bg-dex-bg border-t border-dex-border flex flex-col h-[300px]">
+      {/* 标签页 - 固定在顶部 */}
+      <div className="flex items-center gap-6 px-4 border-b border-dex-border flex-shrink-0 bg-dex-bg">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -107,8 +107,8 @@ export default function PositionsPanel() {
         </button>
       </div>
 
-      {/* 内容区 */}
-      <div className="min-h-[120px]">
+      {/* 内容区 - 可滚动 */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         {activeTab === 'positions' && (
           <>
             {!connected ? (
@@ -128,9 +128,9 @@ export default function PositionsPanel() {
                 暂无持仓
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto h-full">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 bg-dex-bg z-10">
                     <tr className="text-dex-text-secondary text-xs border-b border-dex-border">
                       <th className="px-4 py-2 text-left font-medium">市场</th>
                       <th className="px-4 py-2 text-left font-medium">方向</th>
@@ -244,9 +244,9 @@ export default function PositionsPanel() {
                 暂无历史记录
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto h-full">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 bg-dex-bg z-10">
                     <tr className="text-dex-text-secondary text-xs border-b border-dex-border">
                       <th className="px-4 py-2 text-left font-medium">市场</th>
                       <th className="px-4 py-2 text-left font-medium">方向</th>
