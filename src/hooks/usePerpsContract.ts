@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
-import { Aptos, AptosConfig, Network, InputEntryFunctionData } from '@aptos-labs/ts-sdk';
+import { Aptos, AptosConfig, Network, InputEntryFunctionData, AccountAddress, createObjectAddress } from '@aptos-labs/ts-sdk';
 import { apiService } from '../services/api';
-import { NETWORK_CONFIG, CONTRACT_CONFIG, PRECISION } from '../config/constants';
+import { NETWORK_CONFIG, CONTRACT_CONFIG, PRECISION, MOCK_USDT_SEED } from '../config/constants';
 
 // 创建 Aptos 客户端（Movement Testnet）
 const aptosConfig = new AptosConfig({
@@ -29,22 +29,31 @@ export function usePerpsContract() {
       : account.address.toString();
   };
 
-  // 获取用户 USDT 余额
+  // 获取用户 USDT 余额 - 使用链上原生 RPC 方法
   const getUserBalance = useCallback(async () => {
     const userAddr = getAddressString();
     if (!userAddr) return null;
 
     try {
-      // 调用 mock_usdt::balance_of 查询余额
+      // 计算 Mock USDT metadata 的 object address
+      // metadata address = sha3_256(creator_address || seed || 0xFE)
+      const creatorAddress = AccountAddress.from(MODULE_ADDRESS);
+      // 使用 TextEncoder 将 seed 转为 Uint8Array，避免浏览器环境中 Buffer 不可用的问题
+      const seedBytes = new TextEncoder().encode(MOCK_USDT_SEED);
+      const metadataAddress = createObjectAddress(creatorAddress, seedBytes);
+
+      // 使用原生 RPC 方法 0x1::primary_fungible_store::balance 查询余额
       const result = await aptos.view({
         payload: {
-          function: `${MODULE_ADDRESS}::mock_usdt::balance_of`,
-          functionArguments: [MODULE_ADDRESS, userAddr],
+          function: "0x1::primary_fungible_store::balance",
+          typeArguments: ["0x1::fungible_asset::Metadata"],
+          functionArguments: [userAddr, metadataAddress.toString()],
         },
       });
 
       if (result && result.length > 0) {
-        const balanceValue = Number(result[0]) / PRECISION;
+        // Mock USDT 使用 6 位小数 (与合约中定义一致)
+        const balanceValue = Number(result[0]) / 1_000_000;
         setBalance(balanceValue);
         return balanceValue;
       }
@@ -222,24 +231,37 @@ export function usePerpsContract() {
       console.log('🔍 检查价格是否过期...');
       const staleness = await apiService.checkPriceStaleness(marketId);
 
+      console.log('📊 价格状态:', staleness);
+
       if (!staleness.isStale) {
         console.log('✅ 价格有效，可以交易');
+        return true;
+      }
+
+      // 检查数据库价格是否足够新鲜（5分钟内）
+      if (staleness.dbPrice && staleness.dbPrice.ageSeconds < 300) {
+        console.log('✅ 数据库价格有效，可以交易');
         return true;
       }
 
       console.log('⚠️ 价格已过期，尝试刷新...');
       const refreshResult = await apiService.refreshPrice(marketId);
 
-      if (refreshResult.success && !refreshResult.isNowStale) {
+      console.log('📊 刷新结果:', refreshResult);
+
+      // 刷新成功的条件：success 为 true
+      if (refreshResult.success) {
         console.log('✅ 价格刷新成功');
         return true;
       } else {
-        console.error('❌ 价格刷新失败或仍然过期');
+        console.error('❌ 价格刷新失败');
         return false;
       }
     } catch (err) {
       console.error('价格检查/刷新失败:', err);
-      return false;
+      // 如果是网络错误等，允许继续（让链上交易决定）
+      console.log('⚠️ 价格检查失败，尝试继续交易...');
+      return true;
     }
   }, []);
 
@@ -318,6 +340,29 @@ export function usePerpsContract() {
       });
 
       console.log('✅ 交易已提交:', response);
+
+      // 同步仓位到后端数据库
+      try {
+        // 获取当前价格作为开仓价
+        const prices = await apiService.getPrices(marketId, 1);
+        const entryPrice = prices.length > 0 ? parseFloat(prices[0].price) : 0;
+
+        if (entryPrice > 0) {
+          const syncResult = await apiService.syncPosition({
+            txHash: response.hash,
+            userAddr: userAddr,
+            marketId,
+            isLong,
+            margin,
+            leverage,
+            entryPrice,
+          });
+          console.log('✅ 仓位已同步到数据库:', syncResult);
+        }
+      } catch (syncErr) {
+        console.warn('⚠️ 仓位同步失败（不影响交易）:', syncErr);
+      }
+
       return response;
     } catch (err) {
       console.error('Open position error:', err);

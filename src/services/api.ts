@@ -247,6 +247,26 @@ class ApiService {
     return data;
   }
 
+  // 同步仓位到数据库
+  async syncPosition(params: {
+    txHash: string;
+    userAddr: string;
+    marketId: number;
+    isLong: boolean;
+    margin: number;
+    leverage: number;
+    entryPrice: number;
+  }): Promise<{ id: string; chainId: string; message: string; isNew: boolean }> {
+    const res = await fetch(`${baseUrl}/positions/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const { data, error } = await res.json();
+    if (error) throw new Error(error);
+    return data;
+  }
+
   // 格式化市场数据
   formatMarket(market: Market) {
     return {

@@ -13,9 +13,12 @@ export const CONTRACT_CONFIG = {
   moduleAddress: "0x34fae14ec0eb42191abe3d2cd5cbb2418c4bf88bfcb6e55dbba6df22da64da28",
 } as const;
 
+// Mock USDT Fungible Asset 配置
+export const MOCK_USDT_SEED = "MOCK_USDT";
+
 // API 配置
 export const API_CONFIG = {
-  baseUrl: "https://movement-preps-production.up.railway.app",
+  baseUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
 } as const;
 
 // 精度常量 (1e8)
