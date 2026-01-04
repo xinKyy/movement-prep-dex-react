@@ -227,18 +227,18 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Pr
   }
 
   // 获取显示用的symbol
-  const displaySymbol = symbol.replace('USDT', '-USDC')
+  // const displaySymbol = symbol.replace('USDT', '-USDC')
 
   // 获取基础代币用于显示图标
-  const baseToken = symbol.replace('USDT', '')
-  const tokenInfo: Record<string, { icon: string; color: string; leverage: number }> = {
-    BTC: { icon: '₿', color: 'from-orange-400 to-orange-600', leverage: 40 },
-    ETH: { icon: 'Ξ', color: 'from-blue-400 to-purple-500', leverage: 30 },
-    SOL: { icon: '◎', color: 'from-purple-400 to-pink-500', leverage: 20 },
-    MOVE: { icon: 'M', color: 'from-cyan-400 to-teal-500', leverage: 10 },
-    ARB: { icon: 'A', color: 'from-blue-500 to-blue-700', leverage: 15 },
-  }
-  const currentToken = tokenInfo[baseToken] || { icon: baseToken.charAt(0), color: 'from-gray-400 to-gray-600', leverage: 20 }
+  // const baseToken = symbol.replace('USDT', '')
+  // const tokenInfo: Record<string, { icon: string; color: string; leverage: number }> = {
+  //   BTC: { icon: '₿', color: 'from-orange-400 to-orange-600', leverage: 40 },
+  //   ETH: { icon: 'Ξ', color: 'from-blue-400 to-purple-500', leverage: 30 },
+  //   SOL: { icon: '◎', color: 'from-purple-400 to-pink-500', leverage: 20 },
+  //   MOVE: { icon: 'M', color: 'from-cyan-400 to-teal-500', leverage: 10 },
+  //   ARB: { icon: 'A', color: 'from-blue-500 to-blue-700', leverage: 15 },
+  // }
+  // const currentToken = tokenInfo[baseToken] || { icon: baseToken.charAt(0), color: 'from-gray-400 to-gray-600', leverage: 20 }
 
   return (
     <div className="flex flex-col h-full bg-dex-bg">
