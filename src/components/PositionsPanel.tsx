@@ -4,6 +4,7 @@ import { usePositions } from '../hooks/useApi'
 import { usePerpsContract } from '../hooks/usePerpsContract'
 import { MARKET_INFO } from '../config/constants'
 import { useToast } from './Toast'
+import CoinIcon from './CoinIcon'
 
 type Tab = 'positions' | 'orders' | 'history'
 
@@ -154,11 +155,11 @@ export default function PositionsPanel() {
                         <tr key={position.id} className="border-b border-dex-border hover:bg-dex-card">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              {marketInfo && (
-                                <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${marketInfo.color} flex items-center justify-center text-white text-xs font-bold`}>
-                                  {marketInfo.icon}
-                                </div>
-                              )}
+                              <CoinIcon 
+                                symbol={marketInfo?.baseAsset || position.symbol.split('/')[0]} 
+                                size={24} 
+                                fallbackColor={marketInfo?.color}
+                              />
                               <span className="text-dex-text font-medium">{position.symbol}</span>
                             </div>
                           </td>
@@ -266,11 +267,11 @@ export default function PositionsPanel() {
                         <tr key={position.id} className="border-b border-dex-border hover:bg-dex-card">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              {marketInfo && (
-                                <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${marketInfo.color} flex items-center justify-center text-white text-xs font-bold`}>
-                                  {marketInfo.icon}
-                                </div>
-                              )}
+                              <CoinIcon 
+                                symbol={marketInfo?.baseAsset || position.symbol.split('/')[0]} 
+                                size={24} 
+                                fallbackColor={marketInfo?.color}
+                              />
                               <span className="text-dex-text font-medium">{position.symbol}</span>
                             </div>
                           </td>

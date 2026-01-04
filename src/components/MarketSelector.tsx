@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useMarkets, usePrices } from '../hooks/useApi'
 import { MARKET_INFO } from '../config/constants'
+import CoinIcon from './CoinIcon'
 
 interface Props {
   onSelect?: (binanceSymbol: string, displaySymbol: string, marketId: number) => void
@@ -67,11 +68,11 @@ export default function MarketSelector({ onSelect }: Props) {
         disabled={marketsLoading}
       >
         <div className="flex items-center gap-2">
-          {selectedMarketInfo && (
-            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${selectedMarketInfo.color} flex items-center justify-center text-white font-bold text-sm`}>
-              {selectedMarketInfo.icon}
-            </div>
-          )}
+          <CoinIcon
+            symbol={selectedMarket?.baseAsset || 'BTC'}
+            size={32}
+            fallbackColor={selectedMarketInfo?.color}
+          />
           <span className="font-bold text-dex-text">
             {selectedMarket ? `${selectedMarket.baseAsset}-USDC` : 'BTC-USDC'}
           </span>
@@ -100,7 +101,7 @@ export default function MarketSelector({ onSelect }: Props) {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 mt-2 w-[480px] bg-dex-card border border-dex-border rounded-lg shadow-xl z-50 overflow-hidden">
+          <div className="absolute top-full left-0 mt-2 w-[550px] bg-dex-card border border-dex-border rounded-lg shadow-xl z-50 overflow-hidden">
             {/* 搜索框 */}
             <div className="p-3 border-b border-dex-border">
               <div className="flex items-center gap-2 px-3 py-2 bg-dex-bg rounded-lg">
@@ -151,11 +152,11 @@ export default function MarketSelector({ onSelect }: Props) {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {marketInfo && (
-                          <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${marketInfo.color} flex items-center justify-center text-white font-bold text-xs`}>
-                            {marketInfo.icon}
-                          </div>
-                        )}
+                        <CoinIcon
+                          symbol={market.baseAsset}
+                          size={28}
+                          fallbackColor={marketInfo?.color}
+                        />
                         <div className="text-left">
                           <span className="text-sm text-dex-text font-medium block">
                             {market.baseAsset}-USDC
