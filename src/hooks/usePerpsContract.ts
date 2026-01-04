@@ -441,6 +441,16 @@ export function usePerpsContract() {
       });
 
       console.log('✅ 交易已提交:', response);
+      
+      // 平仓交易成功后，标记仓位为已平仓
+      try {
+        await apiService.markPositionClosed(positionId, response.hash);
+        console.log('✅ 仓位状态已更新为已平仓');
+      } catch (closeErr) {
+        // 标记失败不影响交易，事件同步器会自动处理
+        console.warn('⚠️ 更新仓位状态失败（不影响交易，事件同步器会自动处理）:', closeErr);
+      }
+      
       return response;
     } catch (err) {
       console.error('Close position error:', err);

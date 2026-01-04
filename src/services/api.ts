@@ -281,6 +281,18 @@ class ApiService {
     return data;
   }
 
+  // 标记仓位为已平仓
+  async markPositionClosed(positionId: string, txHash?: string): Promise<{ positionId: string; status: string; closedAt: string }> {
+    const res = await fetch(`${baseUrl}/positions/${positionId}/close`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txHash }),
+    });
+    const { data, error }: ApiResponse<{ positionId: string; status: string; closedAt: string }> = await res.json();
+    if (error) throw new Error(extractErrorMessage(error));
+    return data;
+  }
+
   // 格式化市场数据
   formatMarket(market: Market) {
     return {
