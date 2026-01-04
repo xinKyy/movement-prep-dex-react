@@ -99,6 +99,35 @@ export interface CloseOrderResponse {
   };
 }
 
+// 价格新鲜度检查响应
+export interface PriceStalenessResponse {
+  marketId: number;
+  isStale: boolean;
+  chainPrice: {
+    price: string;
+    timestamp: string;
+    ageSeconds: number | null;
+  } | null;
+  dbPrice: {
+    price: string;
+    timestamp: string;
+    ageSeconds: number;
+  } | null;
+}
+
+// 价格刷新响应
+export interface PriceRefreshResponse {
+  marketId: number;
+  wasStale: boolean;
+  isNowStale: boolean;
+  txHash: string;
+  success: boolean;
+  newChainPrice: {
+    price: string;
+    timestamp: string;
+  } | null;
+}
+
 // API 服务类
 class ApiService {
   // 健康检查
@@ -129,9 +158,27 @@ class ApiService {
     const params = new URLSearchParams();
     if (marketId !== undefined) params.append('marketId', marketId.toString());
     params.append('limit', limit.toString());
-    
+
     const res = await fetch(`${baseUrl}/prices?${params}`);
     const { data, error }: ApiResponse<Price[]> = await res.json();
+    if (error) throw new Error(error);
+    return data;
+  }
+
+  // 检查价格是否过期
+  async checkPriceStaleness(marketId: number): Promise<PriceStalenessResponse> {
+    const res = await fetch(`${baseUrl}/prices/staleness/${marketId}`);
+    const { data, error }: ApiResponse<PriceStalenessResponse> = await res.json();
+    if (error) throw new Error(error);
+    return data;
+  }
+
+  // 刷新链上价格
+  async refreshPrice(marketId: number): Promise<PriceRefreshResponse> {
+    const res = await fetch(`${baseUrl}/prices/refresh/${marketId}`, {
+      method: 'POST',
+    });
+    const { data, error }: ApiResponse<PriceRefreshResponse> = await res.json();
     if (error) throw new Error(error);
     return data;
   }

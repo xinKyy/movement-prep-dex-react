@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { usePerpsContract } from '../hooks/usePerpsContract'
-import { useMarket } from '../hooks/useApi'
+import { useMarket, usePriceStaleness } from '../hooks/useApi'
 import WalletModal from './WalletModal'
 import { useToast } from './Toast'
 
@@ -14,7 +14,12 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const { account, connected } = useWallet()
   const { openPosition, depositToVault, getUserBalance, balance, loading: txLoading, simulating, error: txError } = usePerpsContract()
   const { data: market } = useMarket(marketId)
+  const { data: priceStatus, isLoading: priceStatusLoading } = usePriceStaleness(marketId)
   const { showToast } = useToast()
+
+  // 价格状态
+  const isPriceStale = priceStatus?.isStale ?? false
+  const priceAgeSeconds = priceStatus?.chainPrice?.ageSeconds
 
   // 钱包连接时获取余额
   useEffect(() => {
@@ -100,6 +105,20 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
 
   return (
     <div className="flex flex-col h-full bg-dex-bg">
+      {/* 价格过期警告 */}
+      {isPriceStale && (
+        <div className="px-4 py-2 bg-dex-yellow/20 border-b border-dex-yellow/40">
+          <div className="flex items-center gap-2 text-dex-yellow text-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              价格可能过期 {priceAgeSeconds ? `(${Math.floor(priceAgeSeconds / 60)}分钟前)` : ''}，交易时会自动刷新
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 杠杆选择 */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-dex-border">
         <div className="flex items-center gap-2">

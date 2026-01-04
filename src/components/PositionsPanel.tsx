@@ -137,6 +137,7 @@ export default function PositionsPanel() {
                       <th className="px-4 py-2 text-right font-medium">保证金</th>
                       <th className="px-4 py-2 text-right font-medium">杠杆</th>
                       <th className="px-4 py-2 text-right font-medium">开仓价</th>
+                      <th className="px-4 py-2 text-right font-medium">现价</th>
                       <th className="px-4 py-2 text-right font-medium">盈亏</th>
                       <th className="px-4 py-2 text-right font-medium">健康度</th>
                       <th className="px-4 py-2 text-center font-medium">操作</th>
@@ -180,6 +181,9 @@ export default function PositionsPanel() {
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-dex-text">
                             ${formatNumber(position.entryPrice)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-dex-text">
+                            {position.currentPrice ? `$${formatNumber(position.currentPrice)}` : '-'}
                           </td>
                           <td className={`px-4 py-3 text-right font-mono ${pnl.isPositive ? 'text-dex-green' : 'text-dex-red'}`}>
                             ${pnl.value}

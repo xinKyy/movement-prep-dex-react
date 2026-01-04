@@ -216,6 +216,33 @@ export function usePerpsContract() {
     }
   };
 
+  // 检查并刷新价格（如果过期）
+  const ensureFreshPrice = useCallback(async (marketId: number): Promise<boolean> => {
+    try {
+      console.log('🔍 检查价格是否过期...');
+      const staleness = await apiService.checkPriceStaleness(marketId);
+
+      if (!staleness.isStale) {
+        console.log('✅ 价格有效，可以交易');
+        return true;
+      }
+
+      console.log('⚠️ 价格已过期，尝试刷新...');
+      const refreshResult = await apiService.refreshPrice(marketId);
+
+      if (refreshResult.success && !refreshResult.isNowStale) {
+        console.log('✅ 价格刷新成功');
+        return true;
+      } else {
+        console.error('❌ 价格刷新失败或仍然过期');
+        return false;
+      }
+    } catch (err) {
+      console.error('价格检查/刷新失败:', err);
+      return false;
+    }
+  }, []);
+
   // 开仓 - 合约参数格式
   // 参数说明:
   // - market_id: u64 (0=BTC, 1=ETH, 2=MOVE, 3=SOL, 4=ARB)
@@ -238,6 +265,12 @@ export function usePerpsContract() {
     setError(null);
 
     try {
+      // 1. 首先确保价格是最新的
+      const priceIsFresh = await ensureFreshPrice(marketId);
+      if (!priceIsFresh) {
+        throw new Error('价格已过期且无法刷新，请稍后重试');
+      }
+
       // 直接构建交易参数
       // margin 需要转换为 1e8 精度
       const marginFixed = Math.floor(margin * PRECISION).toString();
@@ -294,7 +327,7 @@ export function usePerpsContract() {
     } finally {
       setLoading(false);
     }
-  }, [account, signAndSubmitTransaction]);
+  }, [account, signAndSubmitTransaction, ensureFreshPrice]);
 
   // 平仓
   const closePosition = useCallback(async (
@@ -318,6 +351,12 @@ export function usePerpsContract() {
       });
 
       console.log('Close order data from backend:', orderData);
+
+      // 确保价格是最新的
+      const priceIsFresh = await ensureFreshPrice(orderData.params.marketId);
+      if (!priceIsFresh) {
+        throw new Error('价格已过期且无法刷新，请稍后重试');
+      }
 
       const { txPayload } = orderData;
 
@@ -348,7 +387,7 @@ export function usePerpsContract() {
     } finally {
       setLoading(false);
     }
-  }, [account, signAndSubmitTransaction]);
+  }, [account, signAndSubmitTransaction, ensureFreshPrice]);
 
   // 带滑点保护的平仓
   const closePositionWithSlippage = useCallback(async (
@@ -371,6 +410,12 @@ export function usePerpsContract() {
       });
 
       console.log('Close order data from backend:', orderData);
+
+      // 确保价格是最新的
+      const priceIsFresh = await ensureFreshPrice(orderData.params.marketId);
+      if (!priceIsFresh) {
+        throw new Error('价格已过期且无法刷新，请稍后重试');
+      }
 
       const { txPayload } = orderData;
 
@@ -401,13 +446,14 @@ export function usePerpsContract() {
     } finally {
       setLoading(false);
     }
-  }, [account, signAndSubmitTransaction]);
+  }, [account, signAndSubmitTransaction, ensureFreshPrice]);
 
   return {
     depositToVault,
     openPosition,
     closePosition,
     closePositionWithSlippage,
+    ensureFreshPrice,
     getUserBalance,
     balance,
     loading,

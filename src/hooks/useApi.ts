@@ -89,6 +89,31 @@ export function useClosePosition() {
   });
 }
 
+// 检查价格是否过期
+export function usePriceStaleness(marketId?: number) {
+  return useQuery({
+    queryKey: ['priceStaleness', marketId],
+    queryFn: () => apiService.checkPriceStaleness(marketId!),
+    enabled: marketId !== undefined,
+    refetchInterval: 10000, // 10秒检查一次
+    staleTime: 5000,
+  });
+}
+
+// 刷新价格 mutation
+export function useRefreshPrice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (marketId: number) => apiService.refreshPrice(marketId),
+    onSuccess: (_, marketId) => {
+      // 刷新价格和staleness查询
+      queryClient.invalidateQueries({ queryKey: ['prices'] });
+      queryClient.invalidateQueries({ queryKey: ['priceStaleness', marketId] });
+    },
+  });
+}
+
 // 格式化工具
 export { apiService };
 
