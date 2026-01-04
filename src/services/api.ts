@@ -2,10 +2,24 @@ import { API_CONFIG, PRECISION } from '../config/constants';
 
 const { baseUrl } = API_CONFIG;
 
+// API 错误类型
+interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
 // API 响应类型
 interface ApiResponse<T> {
   data: T;
-  error: string | null;
+  error: ApiError | string | null;
+}
+
+// 提取错误消息的辅助函数
+function extractErrorMessage(error: ApiError | string | null): string {
+  if (!error) return 'Unknown error';
+  if (typeof error === 'string') return error;
+  return error.message || error.code || 'Unknown error';
 }
 
 // 市场类型
@@ -141,7 +155,7 @@ class ApiService {
   async getMarkets(): Promise<Market[]> {
     const res = await fetch(`${baseUrl}/markets`);
     const { data, error }: ApiResponse<Market[]> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -149,7 +163,7 @@ class ApiService {
   async getMarket(id: number): Promise<Market> {
     const res = await fetch(`${baseUrl}/markets/${id}`);
     const { data, error }: ApiResponse<Market> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -161,7 +175,7 @@ class ApiService {
 
     const res = await fetch(`${baseUrl}/prices?${params}`);
     const { data, error }: ApiResponse<Price[]> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -169,7 +183,7 @@ class ApiService {
   async checkPriceStaleness(marketId: number): Promise<PriceStalenessResponse> {
     const res = await fetch(`${baseUrl}/prices/staleness/${marketId}`);
     const { data, error }: ApiResponse<PriceStalenessResponse> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -179,7 +193,7 @@ class ApiService {
       method: 'POST',
     });
     const { data, error }: ApiResponse<PriceRefreshResponse> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -200,7 +214,7 @@ class ApiService {
     
     const res = await fetch(`${baseUrl}/positions?${searchParams}`);
     const { data, error } = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -208,7 +222,7 @@ class ApiService {
   async getPosition(id: string): Promise<Position> {
     const res = await fetch(`${baseUrl}/positions/${id}`);
     const { data, error }: ApiResponse<Position> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -227,7 +241,7 @@ class ApiService {
       body: JSON.stringify(params),
     });
     const { data, error }: ApiResponse<OpenOrderResponse> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -243,7 +257,7 @@ class ApiService {
       body: JSON.stringify(params),
     });
     const { data, error }: ApiResponse<CloseOrderResponse> = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 
@@ -263,7 +277,7 @@ class ApiService {
       body: JSON.stringify(params),
     });
     const { data, error } = await res.json();
-    if (error) throw new Error(error);
+    if (error) throw new Error(extractErrorMessage(error));
     return data;
   }
 

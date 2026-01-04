@@ -342,25 +342,43 @@ export function usePerpsContract() {
       console.log('✅ 交易已提交:', response);
 
       // 同步仓位到后端数据库
+      // 注意：事件同步器会自动同步仓位，这里的手动同步是为了快速反馈
+      // 如果手动同步失败，事件同步器会在几秒内自动同步
       try {
+        // 等待交易确认（可选，但建议等待以确保事件已发出）
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // 获取当前价格作为开仓价
         const prices = await apiService.getPrices(marketId, 1);
         const entryPrice = prices.length > 0 ? parseFloat(prices[0].price) : 0;
 
         if (entryPrice > 0) {
-          const syncResult = await apiService.syncPosition({
-            txHash: response.hash,
-            userAddr: userAddr,
-            marketId,
-            isLong,
-            margin,
-            leverage,
-            entryPrice,
-          });
-          console.log('✅ 仓位已同步到数据库:', syncResult);
+          try {
+            const syncResult = await apiService.syncPosition({
+              txHash: response.hash,
+              userAddr: userAddr,
+              marketId,
+              isLong,
+              margin,
+              leverage,
+              entryPrice,
+            });
+            
+            if (syncResult.isNew) {
+              console.log('✅ 仓位已同步到数据库:', syncResult);
+            } else {
+              console.log('ℹ️ 仓位已存在（可能由事件同步器创建）:', syncResult);
+            }
+          } catch (syncErr) {
+            // 同步失败不影响交易，事件同步器会自动处理
+            console.warn('⚠️ 手动同步失败，事件同步器将在几秒内自动同步:', syncErr);
+          }
+        } else {
+          console.warn('⚠️ 无法获取价格，跳过手动同步。事件同步器将自动同步仓位。');
         }
       } catch (syncErr) {
-        console.warn('⚠️ 仓位同步失败（不影响交易）:', syncErr);
+        // 同步失败不影响交易，事件同步器会自动处理
+        console.warn('⚠️ 仓位同步失败（不影响交易，事件同步器会自动同步）:', syncErr);
       }
 
       return response;
