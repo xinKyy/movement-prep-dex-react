@@ -79,6 +79,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
     }
   }
 
+
   // 处理开仓
   const handleOpenPosition = async () => {
     if (!connected || !account?.address || margin <= 0) return

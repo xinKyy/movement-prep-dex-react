@@ -1,80 +1,64 @@
 import { useState } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import WalletModal from './WalletModal'
+import { usePerpsContract } from '../hooks/usePerpsContract'
+import { useToast } from './Toast'
 
 export default function Header() {
   const { account, connected, disconnect } = useWallet()
+  const { mintMockUSDT, loading: txLoading } = usePerpsContract()
+  const { showToast } = useToast()
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [isMinting, setIsMinting] = useState(false)
 
   const formatAddress = (addr: string | { toString: () => string }) => {
     const addrStr = typeof addr === 'string' ? addr : addr.toString()
     return `${addrStr.slice(0, 6)}...${addrStr.slice(-4)}`
   }
 
+  // 处理 Mint Mock USDT - 固定 mint 10000 USDT (6位小数)
+  const handleMintMockUSDT = async () => {
+    if (!connected || !account?.address) return
+
+    setIsMinting(true)
+    try {
+      const result = await mintMockUSDT(10000) // 固定 mint 10000 USDT
+      console.log('Mint success:', result)
+      showToast(`成功 Mint 10000 Mock USDT！`, 'success')
+    } catch (error) {
+      console.error('Failed to mint:', error)
+      showToast(`Mint 失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    } finally {
+      setIsMinting(false)
+    }
+  }
+
   return (
     <header className="flex items-center justify-between h-14 px-4 bg-dex-bg border-b border-dex-border">
       {/* Logo */}
-      <div className="flex items-center gap-8">
-        <div className="flex items-center gap-2">
-          <img src="/images/logo.jpg" alt="MetaSpot" className="h-8 w-auto" />
-          <span className="font-bold text-lg text-dex-text">MetaSpot</span>
-        </div>
-
-        {/* 导航链接 */}
-        <nav className="flex items-center gap-6">
-          <a href="#" className="text-sm text-dex-cyan font-medium">
-            交易
-          </a>
-          <a href="#" className="text-sm text-dex-text-secondary hover:text-dex-text transition-colors">
-            投资组合
-          </a>
-          <a href="#" className="text-sm text-dex-text-secondary hover:text-dex-text transition-colors">
-            金库
-          </a>
-          <a href="#" className="text-sm text-dex-text-secondary hover:text-dex-text transition-colors">
-            质押
-          </a>
-          <a href="#" className="text-sm text-dex-text-secondary hover:text-dex-text transition-colors">
-            推荐
-          </a>
-          <a href="#" className="text-sm text-dex-text-secondary hover:text-dex-text transition-colors">
-            排行榜
-          </a>
-        </nav>
+      <div className="flex items-center gap-2">
+        <img src="/images/logo.jpg" alt="MetaSpot" className="h-8 w-auto" />
+        <span className="font-bold text-lg text-dex-text">MetaSpot</span>
       </div>
 
       {/* 右侧操作区 */}
-      <div className="flex items-center gap-4">
-        {/* 公告 */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-dex-card rounded text-sm">
-          <span className="text-dex-yellow">Welcome to MetaSpot!</span>
-          <span className="text-dex-text-secondary">Where real-time markets meet innovation.</span>
-        </div>
-
+      <div className="flex items-center gap-3">
         {/* 网络标识 */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-dex-card border border-dex-border rounded text-xs">
           <span className="w-2 h-2 rounded-full bg-dex-cyan animate-pulse" />
           <span className="text-dex-text-secondary">Movement Testnet</span>
         </div>
 
-        {/* 功能按钮 */}
-        <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-dex-card rounded transition-colors">
-            <svg className="w-5 h-5 text-dex-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-            </svg>
-          </button>
-          <button className="p-2 hover:bg-dex-card rounded transition-colors">
-            <svg className="w-5 h-5 text-dex-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 钱包连接 */}
+        {/* Mint 按钮和钱包连接 */}
         {connected && account ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleMintMockUSDT}
+              disabled={isMinting || txLoading}
+              className="px-4 py-2 bg-dex-green/20 text-dex-green border border-dex-green/40 rounded-lg hover:bg-dex-green/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {isMinting ? 'Minting...' : 'Mint USDT'}
+            </button>
             <button
               onClick={() => disconnect()}
               className="flex items-center gap-2 px-4 py-2 bg-dex-card border border-dex-border rounded-lg hover:border-dex-cyan transition-colors"

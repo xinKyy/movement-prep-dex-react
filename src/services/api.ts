@@ -202,6 +202,7 @@ class ApiService {
     user?: string;
     marketId?: number;
     status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED';
+    statuses?: ('OPEN' | 'CLOSED' | 'LIQUIDATED')[];
     limit?: number;
     offset?: number;
   } = {}): Promise<{ positions: Position[]; pagination: { total: number; limit: number; offset: number } }> {
@@ -209,6 +210,10 @@ class ApiService {
     if (params.user) searchParams.append('user', params.user);
     if (params.marketId !== undefined) searchParams.append('marketId', params.marketId.toString());
     if (params.status) searchParams.append('status', params.status);
+    if (params.statuses && params.statuses.length > 0) {
+      // 支持多个状态查询
+      params.statuses.forEach(s => searchParams.append('statuses', s));
+    }
     if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.offset) searchParams.append('offset', params.offset.toString());
     

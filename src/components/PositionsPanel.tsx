@@ -10,7 +10,8 @@ type Tab = 'positions' | 'orders' | 'history'
 export default function PositionsPanel() {
   const { account, connected } = useWallet()
   const { data: positionsData, isLoading, refetch } = usePositions(account?.address.toStringLong(), 'OPEN')
-  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = usePositions(account?.address.toStringLong(), 'CLOSED')
+  // 历史记录包含 CLOSED 和 LIQUIDATED 两种状态
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = usePositions(account?.address.toStringLong(), undefined, ['CLOSED', 'LIQUIDATED'])
   const { closePosition, loading: closingPosition } = usePerpsContract()
   const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState<Tab>('positions')
@@ -295,8 +296,12 @@ export default function PositionsPanel() {
                             ${formatNumber(position.entryPrice)}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-dex-text-secondary/20 text-dex-text-secondary">
-                              已平仓
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              position.status === 'LIQUIDATED'
+                                ? 'bg-dex-red/20 text-dex-red'
+                                : 'bg-dex-text-secondary/20 text-dex-text-secondary'
+                            }`}>
+                              {position.status === 'LIQUIDATED' ? '已清算' : '已平仓'}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-dex-text-secondary text-xs">

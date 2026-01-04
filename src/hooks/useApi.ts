@@ -32,10 +32,14 @@ export function usePrices(marketId?: number, limit = 10) {
 }
 
 // 获取用户持仓
-export function usePositions(userAddr?: string | undefined, status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED') {
+export function usePositions(
+  userAddr?: string | undefined, 
+  status?: 'OPEN' | 'CLOSED' | 'LIQUIDATED',
+  statuses?: ('OPEN' | 'CLOSED' | 'LIQUIDATED')[]
+) {
   return useQuery({
-    queryKey: ['positions', userAddr, status],
-    queryFn: () => apiService.getPositions({ user: userAddr, status }),
+    queryKey: ['positions', userAddr, status, statuses],
+    queryFn: () => apiService.getPositions({ user: userAddr, status, statuses }),
     enabled: !!userAddr,
     refetchInterval: 5000, // 5秒刷新
     staleTime: 2000,

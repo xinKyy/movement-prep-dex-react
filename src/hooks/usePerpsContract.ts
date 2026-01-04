@@ -521,6 +521,70 @@ export function usePerpsContract() {
     }
   }, [account, signAndSubmitTransaction, ensureFreshPrice]);
 
+  // Mint Mock USDT
+  // 函数签名: mint(admin: &signer, to: address, amount: u64)
+  // admin signer 由调用者自动提供，只需要传递 to 和 amount
+  const mintMockUSDT = useCallback(async (amount: number) => {
+    const userAddr = getAddressString();
+    if (!userAddr) {
+      throw new Error('请先连接钱包');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Mock USDT 使用 6 位小数，需要转换为正确的精度
+      // 固定 mint 10000 USDT = 10000 * 1_000_000 = 10_000_000_000 (u64)
+      const amountFixed = Math.floor(amount * 1_000_000).toString(); // 6 decimals
+
+      const txPayload = {
+        function: `${MODULE_ADDRESS}::mock_usdt::mint`,
+        functionArguments: [
+          userAddr,              // to: address (用户地址)
+          amountFixed,           // amount: u64 (6位小数精度)
+        ],
+      };
+
+      console.log('💰 Mint Mock USDT:', {
+        to: userAddr,
+        amount: amount,
+        amount_fixed: amountFixed,
+      });
+
+      // 先模拟交易
+      const simResult = await simulateTransaction(userAddr, txPayload);
+      console.log('✅ 模拟 mint 成功，预计 Gas:', simResult.gasUsed);
+
+      // 模拟成功后，拉起钱包签名
+      const formattedArgs = formatFunctionArguments(txPayload.functionArguments);
+
+      console.log('🔐 拉起钱包签名...');
+
+      const response = await signAndSubmitTransaction({
+        data: {
+          function: txPayload.function as `${string}::${string}::${string}`,
+          typeArguments: [],
+          functionArguments: formattedArgs,
+        },
+      });
+
+      console.log('✅ Mint 成功:', response);
+      
+      // 刷新余额
+      await getUserBalance();
+      
+      return response;
+    } catch (err) {
+      console.error('Mint Mock USDT error:', err);
+      const message = err instanceof Error ? err.message : 'Mint 失败';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [account, signAndSubmitTransaction, getUserBalance]);
+
   return {
     depositToVault,
     openPosition,
@@ -528,6 +592,7 @@ export function usePerpsContract() {
     closePositionWithSlippage,
     ensureFreshPrice,
     getUserBalance,
+    mintMockUSDT,
     balance,
     loading,
     simulating,

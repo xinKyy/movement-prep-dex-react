@@ -242,37 +242,13 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Pr
 
   return (
     <div className="flex flex-col h-full bg-dex-bg">
-      {/* 价格信息栏 */}
-      <div className="flex items-center gap-6 px-4 py-2 border-b border-dex-border text-sm">
-        <div className="flex items-center gap-2">
-          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentToken.color} flex items-center justify-center text-white font-bold text-xs`}>
-            {currentToken.icon}
-          </div>
-          <span className="text-dex-yellow font-bold">{displaySymbol}</span>
-          <span className="bg-dex-cyan/20 text-dex-cyan px-2 py-0.5 rounded text-xs font-medium">
-            {currentToken.leverage}x
+      {/* 价格信息栏 - 只显示24h变化 */}
+      <div className="flex items-center justify-end gap-4 px-4 py-2 border-b border-dex-border text-sm font-mono">
+        <div>
+          <span className="text-dex-text-secondary text-xs">24h变化</span>
+          <span className={`ml-2 ${priceInfo.changePercent >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
+            {priceInfo.changePercent >= 0 ? '+' : ''}{formatPrice(priceInfo.change)} / {priceInfo.changePercent >= 0 ? '+' : ''}{priceInfo.changePercent.toFixed(2)}%
           </span>
-        </div>
-
-        <div className="flex items-center gap-4 font-mono">
-          <div>
-            <span className="text-dex-text-secondary text-xs">标记</span>
-            <span className={`ml-2 ${priceInfo.change >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
-              {formatPrice(priceInfo.close)}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-dex-text-secondary text-xs">预言机</span>
-            <span className="ml-2 text-dex-text">{formatPrice(priceInfo.close * 1.0005)}</span>
-          </div>
-
-          <div>
-            <span className="text-dex-text-secondary text-xs">24h变化</span>
-            <span className={`ml-2 ${priceInfo.changePercent >= 0 ? 'text-dex-green' : 'text-dex-red'}`}>
-              {priceInfo.changePercent >= 0 ? '+' : ''}{formatPrice(priceInfo.change)} / {priceInfo.changePercent >= 0 ? '+' : ''}{priceInfo.changePercent.toFixed(2)}%
-            </span>
-          </div>
         </div>
       </div>
 
