@@ -239,7 +239,6 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1h' }: Pr
   //   ARB: { icon: 'A', color: 'from-blue-500 to-blue-700', leverage: 15 },
   // }
   // const currentToken = tokenInfo[baseToken] || { icon: baseToken.charAt(0), color: 'from-gray-400 to-gray-600', leverage: 20 }
-
   return (
     <div className="flex flex-col h-full bg-dex-bg">
       {/* 价格信息栏 - 只显示24h变化 */}
