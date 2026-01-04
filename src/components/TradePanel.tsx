@@ -14,7 +14,7 @@ export default function TradePanel({ symbol = 'BTC', marketId = 0 }: Props) {
   const { account, connected } = useWallet()
   const { openPosition, depositToVault, getUserBalance, balance, loading: txLoading, simulating, error: txError } = usePerpsContract()
   const { data: market } = useMarket(marketId)
-  const { data: priceStatus, isLoading: priceStatusLoading } = usePriceStaleness(marketId)
+  const { data: priceStatus } = usePriceStaleness(marketId)
   const { showToast } = useToast()
 
   // 价格状态
